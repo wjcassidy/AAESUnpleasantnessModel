@@ -115,19 +115,19 @@ def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutte
 
     # First three values are from the respective k-fold, the last is trained on all data
     if prog_item == 1:
-        y_intercept =          [2.409,  6.424,  -5.306, 1.111]
-        colouration_gradient = [23.598, 38.458, 29.690, 30.553]
-        flutter_gradient =     [20.797, 6.408,  15.051, 12.825]
-        asymmetry_gradient =   [11.199, 14.196, 30.767, 22.349]
-        curvature_gradient =   [19.369, 29.723, 21.188, 20.129]
-        hf_damping_gradient =  [22.526, 14.415, 20.047, 19.702]
+        y_intercept =          [2.477,  5.768,  -5.537, 1.190]
+        colouration_gradient = [20.831, 29.228, 24.344, 24.305]
+        flutter_gradient =     [20.291, 4.119,  13.329, 10.774]
+        asymmetry_gradient =   [12.290, 18.867, 34.006, 25.619]
+        curvature_gradient =   [19.523, 33.680, 22.114, 21.380]
+        hf_damping_gradient =  [22.281, 15.653, 20.751, 20.457]
     elif prog_item == 2:
-        y_intercept =          [28.750,  24.480,  17.878,  24.587]
-        colouration_gradient = [63.305,  68.913,  74.790,  72.588]
-        flutter_gradient =     [-5.072,  -13.451, -14.902, -12.654]
-        asymmetry_gradient =   [-24.737, -16.476, -3.939,  -13.065]
-        curvature_gradient =   [12.867,  38.217,  17.879,  18.050]
-        hf_damping_gradient =  [-15.195, -23.288, -14.080, -18.369]
+        y_intercept =          [28.788,  21.395,  16.884,  23.777]
+        colouration_gradient = [56.115,  64.442,  64.026,  62.861]
+        flutter_gradient =     [-6.032,  -13.594, -17.490, -15.017]
+        asymmetry_gradient =   [-21.987, -13.063, 2.876,   -7.481]
+        curvature_gradient =   [13.163,  40.875,  19.120,  19.327]
+        hf_damping_gradient =  [-15.876, -21.131, -13.093, -17.295]
     else:
         assert False
 

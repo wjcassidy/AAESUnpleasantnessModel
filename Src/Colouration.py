@@ -69,24 +69,20 @@ def getColouration(rir, sample_rate, should_show_plots=False):
     mag_spectrum_smoothed = savgol_filter(mag_spectrum_to_smooth, window_size, 1)
     mag_spectrum_smoothed = mag_spectrum_smoothed[window_size:-window_size]
 
-    # Subtract smoothed magnitude from raw (modification; use divide for standard)
+    # Subtract smoothed magnitude from raw (modification)
     mag_minus_mean_dB = mag_spectrum_log_trunc_dB - mag_spectrum_smoothed
 
     # Apply equal-loudness contour
     mag_minus_mean_equal_loud_dB = Utils.applyEqualLoudnessContour(mag_minus_mean_dB, mag_spectrum_freqs)
     mag_minus_mean_equal_loud_linear = 10 ** (mag_minus_mean_equal_loud_dB / 20)
 
-    # Clip below 0 to remove notch effects due to dB scale (modification)
-    # mag_minus_mean_equal_loud_dB = np.clip(mag_minus_mean_equal_loud_dB, 0, None)
-    mag_minus_mean_dB = np.clip(mag_minus_mean_dB, 0, None)
-
-    # Output summation of standard deviation and peakedness (modification)
+    # Output standard deviation * peakedness (modification)
     std_dev_linear = np.std(mag_minus_mean_equal_loud_linear)
-    peakedness = np.log10(np.max(mag_minus_mean_dB) - np.mean(mag_minus_mean_dB) - np.std(mag_minus_mean_dB))
+    peakedness = np.max(mag_minus_mean_dB)
     colouration_score = std_dev_linear * peakedness
 
     # Scale to approximately 0-1 (modification)
-    colouration_score = (colouration_score - 0.3) / 0.55
+    colouration_score = (colouration_score - 2.5) / 14
 
     if should_show_plots:
         showPlots(rir,
