@@ -146,19 +146,19 @@ if __name__ == "__main__":
     # filename = "Room3.wav" # pretty high flutter, front-back though
     # filename = "PassiveRoom.wav" # fairly high flutter, late
     # filename = "horizontal_1.wav" # near zero flutter
-    filename = "NoiseIR_RT_1s_48k_1.wav" # zero flutter
+    # filename = "NoiseIR_RT_1s_48k_1.wav" # zero flutter
     # filename = "Room33.wav"
     # filename = "SingleLSLeft.wav"
     # filename = "Wet.wav"
     # filename = "BrightLate.wav"
     # filename = "BrightLateColoured.wav"
-    # filename = "DullLate.wav"
+    # filename = "Colouration/15.wav"
 
     # Spatial RIRs
     # filename = "Asymmetry/11.wav"
 
     # Passive Rooms
-    # filename = "Passive11.wav"
+    filename = "Passive11.wav"
     # filename = "Room3.wav"
     # filename = "PassiveRoom.wav"
     # filename = "Pilsen.wav"
@@ -173,8 +173,10 @@ if __name__ == "__main__":
     sample_rate, spatial_rir = wavfile.read(f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{filename}")
     # SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, True)
     # FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, True)
+    # Colouration.getColouration(spatial_rir[:, 0], sample_rate, True)
+    # HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, True)
 
     evaluateFeature("Colouration")
-    evaluateFeature("Asymmetry")
-    evaluateFeature("Flutter")
-    evaluateFeature("HFDamping")
+    # evaluateFeature("Asymmetry")
+    # evaluateFeature("Flutter")
+    # evaluateFeature("HFDamping")

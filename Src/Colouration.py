@@ -6,22 +6,28 @@ import Energy
 from scipy.signal import savgol_filter
 
 
-def showPlots(rir, colouration_score, mag_spectrum_log_trunc, mag_spectrum_smoothed, mag_over_means, mag_spectrum_freqs):
+def showPlots(mag_minus_mean_dB, colouration_score, mag_spectrum_log_trunc, mag_spectrum_smoothed, mag_over_means, mag_spectrum_freqs):
     plt.figure()
-    fig, axes = plt.subplots(2)
+    fig, axes = plt.subplots(3)
+    fig.set_size_inches(5, 5)
     fig.set_layout_engine("tight")
     plt.suptitle(f"Colouration (stddev of bottom plot) = {round(colouration_score, 3)}")
     axes[0].set_xscale("log")
-    axes[0].set_title('Magnitude Spectrum Raw (dashed) and Smoothed (solid)')
-    axes[0].plot(mag_spectrum_freqs, mag_spectrum_log_trunc, 'c--')
-    axes[0].plot(mag_spectrum_freqs, mag_spectrum_smoothed, 'black')
+    axes[0].set_title('Mag Raw (dashed) and Smoothed (solid)')
+    axes[0].plot(mag_spectrum_freqs, mag_spectrum_log_trunc, 'c')
+    axes[0].plot(mag_spectrum_freqs, mag_spectrum_smoothed, 'black',)
     axes[0].set_xticks([20, 200, 2000])
     axes[0].set_xticklabels(["20", "200", "2k"])
     axes[1].set_xscale("log")
-    axes[1].set_title('Magnitude Spectrum Raw/Smoothed')
-    axes[1].plot(mag_spectrum_freqs, mag_over_means, 'black')
+    axes[1].set_title('Mag Minus Smoothed')
+    axes[1].plot(mag_spectrum_freqs, mag_minus_mean_dB, 'c')
     axes[1].set_xticks([20, 200, 2000])
     axes[1].set_xticklabels(["20", "200", "2k"])
+    axes[2].set_xscale("log")
+    axes[2].set_title('Mag Minus Smoothed Linear (Equal Loudness)')
+    axes[2].plot(mag_spectrum_freqs, mag_over_means, 'black')
+    axes[2].set_xticks([20, 200, 2000])
+    axes[2].set_xticklabels(["20", "200", "2k"])
     plt.show()
 
 
@@ -85,11 +91,11 @@ def getColouration(rir, sample_rate, should_show_plots=False):
     colouration_score = (colouration_score - 2.5) / 14
 
     if should_show_plots:
-        showPlots(rir,
+        showPlots(mag_minus_mean_dB,
                   colouration_score,
                   mag_spectrum_log_trunc_dB,
                   mag_spectrum_smoothed,
-                  mag_minus_mean_equal_loud_dB,
+                  mag_minus_mean_equal_loud_linear,
                   mag_spectrum_freqs)
 
     return colouration_score

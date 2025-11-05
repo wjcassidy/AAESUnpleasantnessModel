@@ -12,7 +12,7 @@ def showPlots(early_mag_spectrum_log_smoothed, late_mag_spectrum_log_smoothed, f
     plt.semilogx(frequencies, late_mag_spectrum_log_smoothed, label="Late", linestyle="-.")
     plt.legend()
     axes.set_xlabel("Frequency")
-    fig.suptitle(f"Early = {np.round(early_energy, 2)}, Late = {np.round(late_energy, 2)}, Spectral Evolution = {np.round(spectral_evolution_score, 2)} dB")
+    fig.suptitle(f"Early = {np.round(early_energy, 2)}, Late = {np.round(late_energy, 2)}, Damping = {np.round(spectral_evolution_score, 2)} dB")
     plt.show()
 
 def getEarlyAndLateRIR(rir, sample_rate, early_start_dB, early_end_dB, late_start_dB, late_end_dB):
@@ -64,6 +64,6 @@ def getHFDampingScore(rir, sample_rate, should_show_plots=False):
     hf_damping_score = (hf_damping_score + 24) / 28
 
     if should_show_plots:
-        showPlots(early_mag_spectrum_log_smoothed, late_mag_spectrum_log_smoothed, early_frequencies, early_mean, late_mean, hf_damping_score)
+        showPlots(early_mag_spectrum_log_smoothed, late_mag_spectrum_log_smoothed, early_frequencies, early_mean, late_mean, late_mean - early_mean)
 
     return hf_damping_score
