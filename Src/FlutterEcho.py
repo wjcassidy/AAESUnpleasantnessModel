@@ -57,7 +57,7 @@ def getScoreSingleChannel(rir, sample_rate, should_show_plots=False):
     energy_spectrum_dB = energy_spectrum_dB[energy_frequency_index_range]
 
     # Find max magnitude of energy oscillations between 0-20 Hz minus the mean and standard deviation
-    flutter_echo_score = 1.0 - (np.max(energy_spectrum_dB) - np.mean(energy_spectrum_dB) - np.std(energy_spectrum_dB))
+    flutter_echo_score = 1.0 - (np.max(energy_spectrum_dB) / np.mean(energy_spectrum_dB))
 
     if should_show_plots:
         showEnergySpectrumPlots(energy_spectrum_dB,
@@ -72,4 +72,4 @@ def getFlutterEchoScore(spatial_rir, sample_rate, should_show_plots=False):
     scores = [getScoreSingleChannel(spatial_rir[:, channel], sample_rate, should_show_plots) for channel in range(2)]
 
     # Output transformed summation of the channel scores
-    return (np.sum(scores) - 0.9) * 1.7
+    return (np.sum(scores) + 0.75) * 2.3
