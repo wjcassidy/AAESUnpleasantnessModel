@@ -1,7 +1,5 @@
 import numpy as np
 from scipy.signal import savgol_filter
-import Utils
-import matplotlib.pyplot as plt
 
 def getEDC(rir, sample_rate):
     integration_limit_samples = len(rir)

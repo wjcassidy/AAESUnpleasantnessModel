@@ -19,8 +19,9 @@ def showPlots(edc_dB,
 
 def getCurvature(rir, sample_rate, should_high_pass=True, show_plots=False):
     if should_high_pass:
-        hpf_cutoff_Hz = 500.0
-        sos = butter(4, hpf_cutoff_Hz, 'highpass', fs=sample_rate, output='sos')
+        order = 4
+        cutoff = 500.0
+        sos = butter(order, cutoff, 'highpass', fs=sample_rate, output='sos')
         rir = sosfilt(sos, rir)
 
     edc_dB, edc_times = Energy.getEDC(rir, sample_rate)

@@ -3,7 +3,6 @@ import Energy
 import Utils
 from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
-import RT
 
 def showPlots(early_mag_spectrum_log_smoothed, late_mag_spectrum_log_smoothed, frequencies, early_energy, late_energy, spectral_evolution_score):
     plt.figure()

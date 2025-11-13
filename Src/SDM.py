@@ -3,10 +3,7 @@ import warnings
 import numpy as np
 from matplotlib import pyplot as plt
 import Utils
-from scipy.signal import savgol_filter
 import Energy
-from scipy.signal import butter, sosfilt
-from scipy import stats
 
 
 # spatial_ir: impulse response in B-format
