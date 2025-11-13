@@ -87,7 +87,7 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False):
     plt.ylabel(f"Predicted")
     plt.xlim([0, 100])
     plt.ylim([0, 1])
-    plt.title(f"{feature} ($R^2$ = {round(r_value ** 2, 2)}, Spearman's = {round(spearman_correlation, 2)})")
+    plt.title(f"{feature} ($R^2$ = {round(r_value ** 2, 2)}, Spearman's = {round(spearman_correlation, 2)})")#, p = {round(p_value, 5)})")
 
     if show_stimulus_ids:
         for i in range(15):
@@ -115,19 +115,19 @@ def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutte
 
     # First three values are from the respective k-fold, the last is trained on all data
     if prog_item == 1:
-        y_intercept =          [2.477,  5.768,  -5.537, 1.190]
-        colouration_gradient = [20.831, 29.228, 24.344, 24.305]
-        flutter_gradient =     [20.291, 4.119,  13.329, 10.774]
-        asymmetry_gradient =   [12.290, 18.867, 34.006, 25.619]
-        curvature_gradient =   [19.523, 33.680, 22.114, 21.380]
-        hf_damping_gradient =  [22.281, 15.653, 20.751, 20.457]
+        y_intercept =          [7.847,  5.688,  -5.733, 3.020]
+        colouration_gradient = [14.994, 29.766, 27.883,  22.202]
+        flutter_gradient =     [5.417,  3.078,  12.314, 5.528]
+        asymmetry_gradient =   [23.165, 19.177, 32.861,  28.599]
+        curvature_gradient =   [17.818, 34.197, 23.473,  21.981]
+        hf_damping_gradient =  [23.646, 16.321, 22.520,  21.264]
     elif prog_item == 2:
-        y_intercept =          [28.788,  21.395,  16.884,  23.777]
-        colouration_gradient = [56.115,  64.442,  64.026,  62.861]
-        flutter_gradient =     [-6.032,  -13.594, -17.490, -15.017]
-        asymmetry_gradient =   [-21.987, -13.063, 2.876,   -7.481]
-        curvature_gradient =   [13.163,  40.875,  19.120,  19.327]
-        hf_damping_gradient =  [-15.876, -21.131, -13.093, -17.295]
+        y_intercept =          [26.885,  15.631,  15.929, 19.923]
+        colouration_gradient = [58.181,  75.432,  61.590, 67.682]
+        flutter_gradient =     [-1.178,  -1.728,  -14.879, -5.825]
+        asymmetry_gradient =   [-25.342, -19.845, 3.732,  -12.540]
+        curvature_gradient =   [13.794,  40.092,  17.416, 18.862]
+        hf_damping_gradient =  [-16.303, -21.722, -14.886,  -18.257]
     else:
         assert False
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     # Colouration.getColouration(spatial_rir[:, 0], sample_rate, True)
     # HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, True)
 
-    evaluateFeature("Colouration")
+    # evaluateFeature("Colouration")
     # evaluateFeature("Asymmetry")
-    # evaluateFeature("Flutter")
+    evaluateFeature("Flutter")
     # evaluateFeature("HFDamping")
