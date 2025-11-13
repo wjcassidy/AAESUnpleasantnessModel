@@ -33,8 +33,8 @@ def showACFPlots(num_octave_bands, auto_correlations, sample_rate, octave_band_c
 def getScoreSingleChannel(rir, sample_rate, should_show_plots=False):
     # High-pass RIR from 1 kHz
     filter_order = 4
-    cutoff_Hz = 1000.0
-    sos = butter(2 * filter_order, cutoff_Hz, 'highpass', fs=sample_rate, output='sos')
+    cutoff_Hz = 2000.0
+    sos = butter(filter_order, cutoff_Hz, 'highpass', fs=sample_rate, output='sos')
     rir_high_passed = sosfilt(sos, rir)
 
     # Get energy time curve of the high-passed RIR
@@ -68,8 +68,8 @@ def getScoreSingleChannel(rir, sample_rate, should_show_plots=False):
 
 
 def getFlutterEchoScore(spatial_rir, sample_rate, should_show_plots=False):
-    # Compute flutter score for the first four spatial RIR channels
-    scores = [getScoreSingleChannel(spatial_rir[:, channel], sample_rate, should_show_plots) for channel in range(4)]
+    # Compute flutter score for the omnidirectional and interaural bidirectional channels
+    scores = [getScoreSingleChannel(spatial_rir[:, channel], sample_rate, should_show_plots) for channel in range(2)]
 
-    # Output summation of the channel scores
-    return (np.sum(scores) - 1.4) / 1.7
+    # Output transformed summation of the channel scores
+    return (np.sum(scores) - 0.9) * 1.7
