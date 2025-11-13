@@ -15,17 +15,18 @@ def getEDC(rir, sample_rate):
     return edc_dB, time_values_seconds
 
 
+# ETC using rectangular window with 0% overlap
 def getEnergyTimeCurve(rir, sample_rate, window_duration_ms: float = 10.0):
     rir /= np.max(np.abs(rir))
     window_length_samples = int((sample_rate * window_duration_ms) / 1000)
     num_rir_samples = len(rir)
-    energy_time_curve = np.zeros(int(num_rir_samples / window_length_samples))
     squared_rir = np.square(rir)
 
+    energy_time_curve = np.zeros(int(num_rir_samples / window_length_samples))
+
     for window_index, sample_index in enumerate(range(0, int(num_rir_samples - window_length_samples), window_length_samples)):
-        # # # apply windowing function here
-        mean = np.mean(squared_rir[sample_index:sample_index + window_length_samples])
-        energy_time_curve[window_index] = 10 * np.log10(mean)
+        summation = np.sum(squared_rir[sample_index:sample_index + window_length_samples])
+        energy_time_curve[window_index] = 10 * np.log10(summation)
 
     time_values = [(energy_bin * window_length_samples) / sample_rate for energy_bin in range(len(energy_time_curve))]
 
