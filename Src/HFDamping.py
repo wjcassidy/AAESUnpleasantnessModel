@@ -4,15 +4,10 @@ import Utils
 from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
 
-def showPlots(early_mag_spectrum_log_smoothed, late_mag_spectrum_log_smoothed, frequencies, early_energy, late_energy, spectral_evolution_score):
-    plt.figure()
-    fig, axes = plt.subplots(1)
-    plt.semilogx(frequencies, early_mag_spectrum_log_smoothed, label="Early", linestyle="--")
-    plt.semilogx(frequencies, late_mag_spectrum_log_smoothed, label="Late", linestyle="-.")
+def drawPlot(mag_spectrum_log_smoothed, frequencies, mean):
+    plt.semilogx(frequencies, mag_spectrum_log_smoothed, label=f"Mean Magnitude = {np.round(mean, 2)} dB")
     plt.legend()
-    axes.set_xlabel("Frequency")
-    fig.suptitle(f"Early = {np.round(early_energy, 2)}, Late = {np.round(late_energy, 2)}, Damping = {np.round(spectral_evolution_score, 2)} dB")
-    plt.show()
+
 
 def getEarlyAndLateRIR(rir, sample_rate, early_start_dB, early_end_dB, late_start_dB, late_end_dB):
     edc_dB, _ = Energy.getEDC(rir, sample_rate)
@@ -31,38 +26,39 @@ def getHFDampingScore(rir, sample_rate, should_show_plots=False):
     # Split early and late regions of the RIR
     early_rir, late_rir = getEarlyAndLateRIR(rir, sample_rate, -1, -15, -35, -40)
 
-    # Zero-pad to the same length
-    pad_length = np.max([len(early_rir), len(late_rir)])
-    early_rir = np.pad(early_rir, (0, pad_length - len(early_rir)), mode='constant')
-    late_rir = np.pad(late_rir, (0, pad_length - len(late_rir)), mode='constant')
+    # indexed by early/late region
+    mean_magnitudes = np.zeros(2)
 
-    # Get magnitude spectrum of each
-    early_mag_spectrum = 20 * np.log10(np.abs(np.fft.rfft(early_rir)))
-    late_mag_spectrum = 20 * np.log10(np.abs(np.fft.rfft(late_rir)))
+    if should_show_plots:
+        plt.figure()
 
-    # Convert to log frequency from cutoff to Nyquist
-    cutoff = 2000
-    early_mag_spectrum_log, early_frequencies = Utils.linearToLog(early_mag_spectrum, sample_rate, cutoff, sample_rate / 2)
-    late_mag_spectrum_log, late_frequencies = Utils.linearToLog(late_mag_spectrum, sample_rate, cutoff, sample_rate / 2)
+    for rir_index, rir_region in enumerate([early_rir, late_rir]):
+        # Get magnitude spectrum of each
+        mag_spectrum = 20 * np.log10(np.abs(np.fft.rfft(rir_region)))
 
-    # Smooth spectra
-    smoothing_window_length_samples = early_mag_spectrum_log.shape[0] // 2
-    early_mag_spectrum_log_smoothed = savgol_filter(early_mag_spectrum_log, window_length=smoothing_window_length_samples, polyorder=1)
-    late_mag_spectrum_log_smoothed = savgol_filter(late_mag_spectrum_log, window_length=smoothing_window_length_samples, polyorder=1)
+        # Convert to log frequency from cutoff to Nyquist
+        cutoff = 2000
+        mag_spectrum_log, frequencies = Utils.linearToLog(mag_spectrum, sample_rate, cutoff, sample_rate / 2)
 
-    # Normalise both spectra so they overlap (compensate for the overall decay in level)
-    early_mag_spectrum_log_smoothed -= np.max(early_mag_spectrum_log_smoothed)
-    late_mag_spectrum_log_smoothed -= np.max(late_mag_spectrum_log_smoothed)
+        # Smooth spectra
+        smoothing_window_length_samples = mag_spectrum_log.shape[0] // 2
+        mag_spectrum_log_smoothed = savgol_filter(mag_spectrum_log, window_length=smoothing_window_length_samples, polyorder=1)
 
-    # Get mean early and late magnitudes
-    early_mean = np.mean(early_mag_spectrum_log_smoothed)
-    late_mean = np.mean(late_mag_spectrum_log_smoothed)
+        # Normalise both spectra so they overlap (compensate for the overall decay in level)
+        mag_spectrum_log_smoothed -= np.max(mag_spectrum_log_smoothed)
+
+        # Get mean early and late magnitudes
+        mean_magnitudes[rir_index] = np.mean(mag_spectrum_log_smoothed)
+
+        if should_show_plots:
+            drawPlot(mag_spectrum_log_smoothed, frequencies, mean_magnitudes[rir_index])
 
     # Return (late - early) transformed to 0.2-0.8
-    hf_damping_score = late_mean - early_mean
+    hf_damping_score = mean_magnitudes[1] - mean_magnitudes[0]
     hf_damping_score = (hf_damping_score + 24) / 28
 
     if should_show_plots:
-        showPlots(early_mag_spectrum_log_smoothed, late_mag_spectrum_log_smoothed, early_frequencies, early_mean, late_mean, late_mean - early_mean)
+        plt.title(f"HF Damping Score = {np.round(hf_damping_score, 2)}")
+        plt.show()
 
     return hf_damping_score
