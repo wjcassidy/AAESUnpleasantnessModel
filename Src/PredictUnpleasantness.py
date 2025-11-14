@@ -115,19 +115,19 @@ def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutte
 
     # First three values are from the respective k-fold, the last is trained on all data
     if prog_item == 1:
-        y_intercept =          [7.847,  5.688,  -5.733, 3.020]
-        colouration_gradient = [14.994, 29.766, 27.883,  22.202]
-        flutter_gradient =     [5.417,  3.078,  12.314, 5.528]
-        asymmetry_gradient =   [23.165, 19.177, 32.861,  28.599]
-        curvature_gradient =   [17.818, 34.197, 23.473,  21.981]
-        hf_damping_gradient =  [23.646, 16.321, 22.520,  21.264]
+        y_intercept =          [4.014,  -6.114, -13.399, 0.441]
+        colouration_gradient = [19.661, 63.282, 29.815,  29.566]
+        flutter_gradient =     [14.186, 23.199, 15.996,  12.387]
+        asymmetry_gradient =   [13.808, 2.134,  29.673, 23.356]
+        curvature_gradient =   [25.760, 41.189, 31.543,  27.132]
+        hf_damping_gradient =  [19.898, 11.748, 26.366,  16.431]
     elif prog_item == 2:
-        y_intercept =          [26.885,  15.631,  15.929, 19.923]
-        colouration_gradient = [58.181,  75.432,  61.590, 67.682]
-        flutter_gradient =     [-1.178,  -1.728,  -14.879, -5.825]
-        asymmetry_gradient =   [-25.342, -19.845, 3.732,  -12.540]
-        curvature_gradient =   [13.794,  40.092,  17.416, 18.862]
-        hf_damping_gradient =  [-16.303, -21.722, -14.886,  -18.257]
+        y_intercept =          [29.475,  23.835,  15.898,  21.370]
+        colouration_gradient = [56.435,  56.939,  70.117,  64.888]
+        flutter_gradient =     [-4.435,  -13.447, -8.640, -9.772]
+        asymmetry_gradient =   [-20.606, -6.970,  -1.446, -7.511]
+        curvature_gradient =   [11.943,  36.026,  14.487, 14.986]
+        hf_damping_gradient =  [-18.884, -23.701, -16.167,  -17.549]
     else:
         assert False
 
@@ -178,5 +178,5 @@ if __name__ == "__main__":
 
     # evaluateFeature("Colouration")
     # evaluateFeature("Asymmetry")
-    evaluateFeature("Flutter")
-    # evaluateFeature("HFDamping")
+    # evaluateFeature("Flutter")
+    evaluateFeature("HFDamping")
