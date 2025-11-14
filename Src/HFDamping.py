@@ -55,7 +55,7 @@ def getHFDampingScore(rir, sample_rate, should_show_plots=False):
 
     # Return (late - early) transformed to 0.2-0.8
     hf_damping_score = mean_magnitudes[1] - mean_magnitudes[0]
-    hf_damping_score = (hf_damping_score + 24) / 28
+    hf_damping_score = (hf_damping_score + 28) / 33
 
     if should_show_plots:
         plt.title(f"HF Damping Score = {np.round(hf_damping_score, 2)}")
