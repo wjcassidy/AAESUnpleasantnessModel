@@ -4,7 +4,7 @@ from matplotlib import rc
 
 
 if __name__ == "__main__":
-    features = ["Colour.", "Flutter", "Asym.", "Curv.", "Damp."]
+    features = ["Colouration", "Flutter Echo", "Spatial\nAsymmetry", "Curvature", "HF Damping"]
 
     standardised_betas = [[0.170, 0.134, 0.143, 0.189, 0.115],
                           [0.368, -0.103, -0.046, 0.107, -0.127]]
@@ -25,10 +25,15 @@ if __name__ == "__main__":
     fig.set_size_inches(4, 6)
     fig.set_layout_engine("tight")
 
+    plt.xticks(rotation=20, ha="right")
+
     rc("font",**{"size": 11, "sans-serif": "CMU Serif"})
 
     for plot_index, prog_item_betas in enumerate(standardised_betas):
-        p = axes[plot_index].bar(features, prog_item_betas, zorder=2)
+        p = axes[plot_index].bar(features, prog_item_betas, zorder=2, color=['#333333', '#666666', '#333333', '#666666', '#333333'])
+
+        if plot_index == 0:
+            axes[plot_index].set_xticklabels([])
 
         axes[plot_index].bar_label(p, labels=significances[plot_index], label_type='edge')
         axes[plot_index].set_title("b. Saxophone" if plot_index else "a. Handclaps")
@@ -40,20 +45,20 @@ if __name__ == "__main__":
 
     plt.show()
 
-    fig, axes = plt.subplots(2)
-    fig.set_size_inches(4, 6)
-    fig.set_layout_engine("tight")
+    # fig, axes = plt.subplots(2)
+    # fig.set_size_inches(4, 6)
+    # fig.set_layout_engine("tight")
+    #
+    # rc("font",**{"size": 11, "sans-serif": "CMU Serif"})
 
-    rc("font",**{"size": 11, "sans-serif": "CMU Serif"})
-
-    for plot_index, prog_item_unique_contributions in enumerate(unique_proportions_of_model_variance):
-        p = axes[plot_index].bar(features, prog_item_unique_contributions, zorder=2)
-
-        axes[plot_index].set_title("b. Saxophone" if plot_index else "a. Handclaps")
-        axes[plot_index].grid(zorder=0, axis="y")
-        axes[plot_index].set_ylim([0.0, 0.27])
-        axes[plot_index].set_yticks([0.0, 0.10, 0.20])
-        axes[plot_index].set_yticklabels(["0 %", "10 %", "20 %"])
-        axes[plot_index].set_ylabel("Unique Proportion of Model Variance")
+    # for plot_index, prog_item_unique_contributions in enumerate(unique_proportions_of_model_variance):
+    #     p = axes[plot_index].bar(features, prog_item_unique_contributions, zorder=2)
+    #
+    #     axes[plot_index].set_title("b. Saxophone" if plot_index else "a. Handclaps")
+    #     axes[plot_index].grid(zorder=0, axis="y")
+    #     axes[plot_index].set_ylim([0.0, 0.27])
+    #     axes[plot_index].set_yticks([0.0, 0.10, 0.20])
+    #     axes[plot_index].set_yticklabels(["0 %", "10 %", "20 %"])
+    #     axes[plot_index].set_ylabel("Unique Proportion of Model Variance")
 
     plt.show()
