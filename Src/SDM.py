@@ -147,10 +147,13 @@ def getSpatialAsymmetryScore(spatial_rir, sample_rate, show_plots=False):
 
     num_plot_angles = 10
     num_times = 4
+    # num_plot_angles = 100 # Uncomment for detailed plot
+    # num_times = 100 # Uncomment for detailed plot
 
     all_doas = np.zeros([num_octave_bands, 3, num_times, num_plot_angles])
     circular_stds = np.zeros([num_octave_bands, 3, num_times])
     start_energies = [-25, -30, -35, -40] # dB
+    # start_energies = np.arange(0, -50, -0.5) # Uncomment for detailed plot
 
     for octave_band_index in range(num_octave_bands):
         spatial_rir_octave = spatial_rir_octave_bands[octave_band_index, :, :]
@@ -176,13 +179,13 @@ def getSpatialAsymmetryScore(spatial_rir, sample_rate, show_plots=False):
                 circular_stds[octave_band_index, plane_index, time_index] = Utils.circularStd(10 ** (doa_radii / 10), doa_angles)
 
     if show_plots:
-        fig = plt.figure()
+        fig = plt.figure(dpi=150)
         plt.rcParams.update({
             "text.usetex": True,
             "font.family": "CMU Serif",
             "font.size": 15
         })
-        plt.imshow(all_doas[3, 0, :, :].transpose(), aspect='auto')
+        plt.imshow(all_doas[3, 0, :, :].transpose(), aspect='auto', cmap='magma')
         plt.ylabel("Angle")
         plt.yticks([0, (num_plot_angles - 1)/4, (num_plot_angles - 1)/2, 3 * (num_plot_angles - 1) / 4, (num_plot_angles - 1)], ["0","$\pi/2$","$\pi$","$3\pi/2$","$2\pi$"])
         plt.xticks([0,num_times/5,2*num_times/5,3*num_times/5,4*num_times/5,num_times], ["0","-10","-20","-30","-40","-50"])

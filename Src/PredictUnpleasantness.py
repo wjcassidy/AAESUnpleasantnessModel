@@ -79,8 +79,8 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False):
         "font.family": "CMU Serif",
         "font.size": 15
     })
-    plt.plot(mean_results, feature_outputs, 'o')
-    plt.plot([0, 100], linear_regression([0, 100]))
+    plt.plot(mean_results, feature_outputs, 'o', color='black')
+    plt.plot([0, 100], linear_regression([0, 100]), color='orangered')
     # plt.plot([0, 100], [0, 1], linestyle='--', color='black', linewidth=0.5, dashes=(10,5))
     # plt.plot(all_results, repeated_feature_outputs, 'o', all_results, linear_regression(all_results))
     plt.xlabel(f"True Rating")
@@ -155,10 +155,11 @@ if __name__ == "__main__":
     # filename = "Colouration/15.wav"
 
     # Spatial RIRs
-    # filename = "Asymmetry/11.wav"
+    filename = "Asymmetry/11.wav"
+    # filename = "Asymmetry/1.wav"
 
     # Passive Rooms
-    filename = "Passive11.wav"
+    # filename = "Passive11.wav"
     # filename = "Room3.wav"
     # filename = "PassiveRoom.wav"
     # filename = "Pilsen.wav"
@@ -171,7 +172,7 @@ if __name__ == "__main__":
     # filename = "Stimulus101.wav"
 
     sample_rate, spatial_rir = wavfile.read(f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{filename}")
-    # SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, True)
+    SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, True)
     # FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, True)
     # Colouration.getColouration(spatial_rir[:, 0], sample_rate, True)
     # HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, True)
@@ -179,4 +180,4 @@ if __name__ == "__main__":
     # evaluateFeature("Colouration")
     # evaluateFeature("Asymmetry")
     # evaluateFeature("Flutter")
-    evaluateFeature("HFDamping")
+    # evaluateFeature("HFDamping")

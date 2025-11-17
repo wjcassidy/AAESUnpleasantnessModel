@@ -23,9 +23,10 @@ if __name__ == "__main__":
 
     fig, axes = plt.subplots(2)
     fig.set_size_inches(4, 6)
+    fig.set_dpi(150)
     fig.set_layout_engine("tight")
 
-    plt.xticks(rotation=20, ha="right")
+    plt.xticks(rotation=30, ha="right")
 
     rc("font",**{"size": 11, "sans-serif": "CMU Serif"})
 
@@ -35,8 +36,8 @@ if __name__ == "__main__":
         if plot_index == 0:
             axes[plot_index].set_xticklabels([])
 
-        axes[plot_index].bar_label(p, labels=significances[plot_index], label_type='edge')
-        axes[plot_index].set_title("b. Saxophone" if plot_index else "a. Handclaps")
+        # axes[plot_index].bar_label(p, labels=significances[plot_index], label_type='edge')
+        axes[plot_index].set_title("b. Saxophone" if plot_index else "a. Handclaps", size=14)
         axes[plot_index].grid(zorder=0, axis="y")
         axes[plot_index].set_ylim([-0.17, 0.43])
         axes[plot_index].set_yticks([-0.1, 0.0, 0.1, 0.2, 0.3, 0.4])
