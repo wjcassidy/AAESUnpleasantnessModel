@@ -15,7 +15,7 @@ from os.path import isfile
 # Reads the RIR files in folder "Labelled {feature}", the names of which are ranked from 0-10
 # (e.g. "0.wav", "0_1.wav", "1.wav"), and compares these to the feature outputs for the RIRs.
 # feature = "Colouration" | "Spatial Asymmetry" | "Flutter Echo"
-def evaluateFeature(feature="Colouration", show_stimulus_ids=False):
+def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=False):
     feature_rirs_dir = f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{feature}/"
     stimulus_filenames = [filename for filename in listdir(feature_rirs_dir) if isfile(feature_rirs_dir + filename) and filename.endswith("wav")]
 
@@ -74,20 +74,23 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False):
     spearman_correlation, spearman_sig = stats.spearmanr(mean_results, feature_outputs)
     linear_regression = np.poly1d([gradient, y_intercept])
 
+    plt.figure(figsize=(6.0, 5.0), dpi=150)
     plt.rcParams.update({
         "text.usetex": True,
         "font.family": "CMU Serif",
-        "font.size": 15
+        "font.size": 24
     })
-    plt.plot(mean_results, feature_outputs, 'o', color='black')
-    plt.plot([0, 100], linear_regression([0, 100]), color='orangered')
+    plt.scatter(mean_results, feature_outputs, marker='o', color='black', s=50)
+    plt.plot([0, 100], linear_regression([0, 100]), color='orangered', linewidth=2)
     # plt.plot([0, 100], [0, 1], linestyle='--', color='black', linewidth=0.5, dashes=(10,5))
     # plt.plot(all_results, repeated_feature_outputs, 'o', all_results, linear_regression(all_results))
-    plt.xlabel(f"True Rating")
+    plt.xlabel(f"Mean Listener Rating")
     plt.ylabel(f"Predicted")
     plt.xlim([0, 100])
     plt.ylim([0, 1])
-    plt.title(f"{feature} ($R^2$ = {round(r_value ** 2, 2)}, Spearman's = {round(spearman_correlation, 2)})")#, p = {round(p_value, 5)})")
+    plt.tight_layout()
+    stats_label = f"($R^2$ = {round(r_value ** 2, 2)}, $r_s$ = {round(spearman_correlation, 2)})" if show_stats else ""
+    plt.title(f"{feature} {stats_label}")#, p = {round(p_value, 5)})")
 
     if show_stimulus_ids:
         for i in range(15):

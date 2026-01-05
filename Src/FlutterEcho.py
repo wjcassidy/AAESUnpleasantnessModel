@@ -48,7 +48,7 @@ def getScoreSingleChannel(rir, sample_rate, should_show_plots=False):
     fft_size = 2 ** 10
     energy_spectrum_dB = np.log10(np.abs(np.fft.rfft(etc_dB_trunc, n=fft_size)))
 
-    # Truncate energy spectrum between 0-30 Hz
+    # Truncate energy spectrum between 0-20 Hz
     energy_spectrum_freqs = np.fft.rfftfreq(fft_size, etc_window_duration_ms / 1000.0)
     energy_frequency_index_range = Utils.getFrequencyIndexRange(energy_spectrum_freqs,
                                                                 0.0,

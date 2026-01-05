@@ -5,8 +5,7 @@ from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
 
 def drawPlot(mag_spectrum_log_smoothed, frequencies, mean):
-    plt.semilogx(frequencies, mag_spectrum_log_smoothed, label=f"Mean Magnitude = {np.round(mean, 2)} dB")
-    plt.legend()
+    plt.semilogx(frequencies, mag_spectrum_log_smoothed, label=f"Mean = {np.round(mean, 2)} dB")
 
 
 def getEarlyAndLateRIR(rir, sample_rate, early_start_dB, early_end_dB, late_start_dB, late_end_dB):
@@ -58,7 +57,14 @@ def getHFDampingScore(rir, sample_rate, should_show_plots=False):
     hf_damping_score = (hf_damping_score + 28) / 33
 
     if should_show_plots:
+        plt.rcParams.update({
+            "font.size": 14
+        })
         plt.title(f"HF Damping Score = {np.round(hf_damping_score, 2)}")
+        plt.xticks([2e3, 3e3, 4e3, 6e3, 8e3, 12e3, 16e3], ["2k", "3k", "4k", "6k", "8k", "12k", "16k"], size="medium")
+        plt.yticks(range(-40, 10, 10), [str(i) for i in range(-40, 10, 10)], fontsize="medium")
+        plt.ylim([-40, 2])
+        plt.legend(fontsize="medium")
         plt.show()
 
     return hf_damping_score

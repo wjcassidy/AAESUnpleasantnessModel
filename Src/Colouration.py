@@ -12,22 +12,22 @@ def showPlots(mag_minus_mean_dB, colouration_score, mag_spectrum_log_trunc, mag_
     fig.set_size_inches(5, 5)
     fig.set_layout_engine("tight")
     plt.suptitle(f"Colouration (stddev of bottom plot) = {round(colouration_score, 3)}")
-    axes[0].set_xscale("log")
+
     axes[0].set_title('Mag Raw (dashed) and Smoothed (solid)')
     axes[0].plot(mag_spectrum_freqs, mag_spectrum_log_trunc, 'c')
     axes[0].plot(mag_spectrum_freqs, mag_spectrum_smoothed, 'black',)
-    axes[0].set_xticks([20, 200, 2000])
-    axes[0].set_xticklabels(["20", "200", "2k"])
-    axes[1].set_xscale("log")
     axes[1].set_title('Mag Minus Smoothed')
     axes[1].plot(mag_spectrum_freqs, mag_minus_mean_dB, 'c')
-    axes[1].set_xticks([20, 200, 2000])
-    axes[1].set_xticklabels(["20", "200", "2k"])
-    axes[2].set_xscale("log")
+    axes[1].set_ylim([0, 30])
     axes[2].set_title('Mag Minus Smoothed Linear (Equal Loudness)')
     axes[2].plot(mag_spectrum_freqs, mag_over_means, 'black')
-    axes[2].set_xticks([20, 200, 2000])
-    axes[2].set_xticklabels(["20", "200", "2k"])
+    axes[2].set_ylim([0, 10])
+
+    for i in range(3):
+        axes[i].set_xscale("log")
+        axes[i].set_xticks([20, 200, 2000])
+        axes[i].set_xticklabels(["20", "200", "2k"])
+
     plt.show()
 
 
