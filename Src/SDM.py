@@ -18,9 +18,8 @@ def getDOAPerSample(spatial_ir, window_length_samples=5):
         coords_cartesian[:, axis] = np.convolve(window, spatial_ir[:, 0] * spatial_ir[:, spherical_harmonic_index], "same")
 
     # Normalise each direction to a radius of 1
-    euclidean_distances = np.tile(np.sqrt(np.square(coords_cartesian[:, 0])
-                                          + np.square(coords_cartesian[:, 1])
-                                          + np.square(coords_cartesian[:, 2])), (3, 1)).transpose()
+    sum_of_squares = np.square(coords_cartesian[:, 0]) + np.square(coords_cartesian[:, 1]) + np.square(coords_cartesian[:, 2])
+    euclidean_distances = np.tile(np.sqrt(sum_of_squares), (3, 1)).transpose()
 
     doa_per_sample_cartesian = coords_cartesian / euclidean_distances
 
