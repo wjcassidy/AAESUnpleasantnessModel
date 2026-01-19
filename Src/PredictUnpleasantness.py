@@ -1,5 +1,15 @@
-from scipy.io import wavfile
+import sys
+
+import torch
+
+sys.path.insert(1, "/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel-Diff/Src/")
+import DiffColouration
+import DiffFlutterEcho
+import DiffHFDamping
+import DiffDSE
+import DiffSDM
 import Colouration
+from scipy.io import wavfile
 import FlutterEcho
 import numpy as np
 from scipy import stats
@@ -12,12 +22,9 @@ from os import listdir
 from os.path import isfile
 
 
-# Reads the RIR files in folder "Labelled {feature}", the names of which are ranked from 0-10
-# (e.g. "0.wav", "0_1.wav", "1.wav"), and compares these to the feature outputs for the RIRs.
-# feature = "Colouration" | "Spatial Asymmetry" | "Flutter Echo"
-def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=False):
-    feature_rirs_dir = f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{feature}/"
-    stimulus_filenames = [filename for filename in listdir(feature_rirs_dir) if isfile(feature_rirs_dir + filename) and filename.endswith("wav")]
+def getFeatureResults(directory, feature):
+    stimulus_filenames = [filename for filename in listdir(directory) if
+                          isfile(directory + filename) and filename.endswith("wav")]
 
     results_filepath = f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/FeatureListeningTest/{feature}_results.csv"
 
@@ -26,7 +33,7 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=F
 
     num_stimuli = len(stimulus_filenames)
     num_subjects = int(np.floor(len(results_lines) / len(stimulus_filenames)))
-    results = np.zeros([num_stimuli, num_subjects]) # audio file index, subject
+    results = np.zeros([num_stimuli, num_subjects])  # audio file index, subject
 
     stimulus_index = 0
     subject_index = 0
@@ -45,29 +52,13 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=F
             subject_index += 1
             stimulus_index = 0
 
-    feature_outputs = np.zeros_like(stimulus_filenames)
+    return results, stimulus_filenames
 
-    for filename in stimulus_filenames:
-        filepath = feature_rirs_dir + filename
-        file_index = int(filename.strip(".wav")) - 1
-        sample_rate, spatial_rir = wavfile.read(filepath)
 
-        if feature == "Colouration":
-            feature_outputs[file_index] = Colouration.getColouration(spatial_rir[:, 0], sample_rate, False)
-        elif feature == "Asymmetry":
-            feature_outputs[file_index] = SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, False)
-        elif feature == "Flutter":
-            feature_outputs[file_index] = FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
-        elif feature == "HFDamping":
-            feature_outputs[file_index] = HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, False)
-        else:
-            assert False
-
-    feature_outputs = [float(output) for output in feature_outputs]
-
+def plotFeatureEvaluation(results, feature_outputs, feature, show_stimulus_ids, show_stats):
     mean_results = np.mean(results, 1)
     all_results = results.flatten()
-    repeated_feature_outputs = np.repeat(feature_outputs, num_subjects)
+    repeated_feature_outputs = np.repeat(feature_outputs, results.shape[1])
 
     gradient, y_intercept, r_value, p_value, std_err = stats.linregress(mean_results, feature_outputs)
     # gradient, y_intercept, r_value, p_value, std_err = stats.linregress(all_results, repeated_feature_outputs)
@@ -97,6 +88,55 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=F
             plt.annotate(str(i + 1), (mean_results[i], feature_outputs[i]))
 
     plt.show()
+
+
+def getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differentiable):
+    feature_outputs = torch.zeros(len(stimulus_filenames))
+
+    for filename in stimulus_filenames:
+        filepath = feature_rirs_dir + filename
+        file_index = int(filename.strip(".wav")) - 1
+        sample_rate, spatial_rir = wavfile.read(filepath)
+
+        if use_differentiable:
+            spatial_rir = torch.tensor(spatial_rir, dtype=torch.float32).transpose(1, 0) # Uncomment for evaluating differentiable version
+
+            if feature == "Colouration":
+                feature_outputs[file_index] = DiffColouration.getColouration(spatial_rir[:, 0], sample_rate, False)
+            elif feature == "Asymmetry":
+                feature_outputs[file_index] = DiffSDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, False)
+            elif feature == "Flutter":
+                feature_outputs[file_index] = DiffFlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
+            elif feature == "HFDamping":
+                feature_outputs[file_index] = DiffHFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, False)
+            else:
+                assert False
+        else:
+            if feature == "Colouration":
+                feature_outputs[file_index] = Colouration.getColouration(spatial_rir[:, 0], sample_rate, False)
+            elif feature == "Asymmetry":
+                feature_outputs[file_index] = SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, False)
+            elif feature == "Flutter":
+                feature_outputs[file_index] = FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
+            elif feature == "HFDamping":
+                feature_outputs[file_index] = HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, False)
+            else:
+                assert False
+
+    return feature_outputs
+
+
+# Reads the RIR files in folder "Labelled {feature}", the names of which are ranked from 0-10
+# (e.g. "0.wav", "0_1.wav", "1.wav"), and compares these to the feature outputs for the RIRs.
+# feature = "Colouration" | "Spatial Asymmetry" | "Flutter Echo"
+def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=False, use_differentiable=False):
+    feature_rirs_dir = f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{feature}/"
+
+    results, stimulus_filenames = getFeatureResults(feature_rirs_dir, feature)
+
+    feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differentiable)
+
+    plotFeatureEvaluation(results, feature_outputs, feature, show_stimulus_ids, show_stats)
 
 
 def predictUnpleasantnessFromRIR(rir_filepath):
@@ -180,7 +220,7 @@ if __name__ == "__main__":
     # Colouration.getColouration(spatial_rir[:, 0], sample_rate, True)
     # HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, True)
 
-    # evaluateFeature("Colouration")
-    # evaluateFeature("Asymmetry")
-    # evaluateFeature("Flutter")
-    # evaluateFeature("HFDamping")
+    evaluateFeature("Colouration", show_stats=True, use_differentiable=False)
+    evaluateFeature("Asymmetry", show_stats=True, use_differentiable=False)
+    evaluateFeature("Flutter", show_stats=True, use_differentiable=False)
+    evaluateFeature("HFDamping", show_stats=True, use_differentiable=False)
