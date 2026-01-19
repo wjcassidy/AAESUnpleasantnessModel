@@ -55,14 +55,9 @@ def getFeatureResults(directory, feature):
     return results, stimulus_filenames
 
 
-def plotFeatureEvaluation(results, feature_outputs, feature, show_stimulus_ids, show_stats):
-    mean_results = np.mean(results, 1)
-    all_results = results.flatten()
-    repeated_feature_outputs = np.repeat(feature_outputs, results.shape[1])
-
-    gradient, y_intercept, r_value, p_value, std_err = stats.linregress(mean_results, feature_outputs)
-    # gradient, y_intercept, r_value, p_value, std_err = stats.linregress(all_results, repeated_feature_outputs)
-    spearman_correlation, spearman_sig = stats.spearmanr(mean_results, feature_outputs)
+def plotFeatureEvaluation(x_values, y_values, feature, show_stimulus_ids, show_stats, input_is_0_to_100=True):
+    gradient, y_intercept, r_value, p_value, std_err = stats.linregress(x_values, y_values)
+    spearman_correlation, spearman_sig = stats.spearmanr(x_values, y_values)
     linear_regression = np.poly1d([gradient, y_intercept])
 
     plt.figure(figsize=(6.0, 5.0), dpi=150)
@@ -71,13 +66,12 @@ def plotFeatureEvaluation(results, feature_outputs, feature, show_stimulus_ids, 
         "font.family": "CMU Serif",
         "font.size": 24
     })
-    plt.scatter(mean_results, feature_outputs, marker='o', color='black', s=50)
-    plt.plot([0, 100], linear_regression([0, 100]), color='orangered', linewidth=2)
-    # plt.plot([0, 100], [0, 1], linestyle='--', color='black', linewidth=0.5, dashes=(10,5))
-    # plt.plot(all_results, repeated_feature_outputs, 'o', all_results, linear_regression(all_results))
+    plt.scatter(x_values, y_values, marker='o', color='black', s=50)
+    plt.plot([0, 100 if input_is_0_to_100 else 1], linear_regression([0, 100 if input_is_0_to_100 else 1]), color='orangered', linewidth=2)
     plt.xlabel(f"Mean Listener Rating")
     plt.ylabel(f"Predicted")
-    plt.xlim([0, 100])
+    if input_is_0_to_100:
+        plt.xlim([0, 100])
     plt.ylim([0, 1])
     plt.tight_layout()
     stats_label = f"($R^2$ = {round(r_value ** 2, 2)}, $r_s$ = {round(spearman_correlation, 2)})" if show_stats else ""
@@ -85,7 +79,7 @@ def plotFeatureEvaluation(results, feature_outputs, feature, show_stimulus_ids, 
 
     if show_stimulus_ids:
         for i in range(15):
-            plt.annotate(str(i + 1), (mean_results[i], feature_outputs[i]))
+            plt.annotate(str(i + 1), (x_values[i], y_values[i]))
 
     plt.show()
 
@@ -102,13 +96,13 @@ def getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differen
             spatial_rir = torch.tensor(spatial_rir, dtype=torch.float32).transpose(1, 0) # Uncomment for evaluating differentiable version
 
             if feature == "Colouration":
-                feature_outputs[file_index] = DiffColouration.getColouration(spatial_rir[:, 0], sample_rate, False)
+                feature_outputs[file_index] = DiffColouration.getColouration(spatial_rir[0, :], sample_rate, False)
             elif feature == "Asymmetry":
                 feature_outputs[file_index] = DiffSDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, False)
             elif feature == "Flutter":
                 feature_outputs[file_index] = DiffFlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
             elif feature == "HFDamping":
-                feature_outputs[file_index] = DiffHFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, False)
+                feature_outputs[file_index] = DiffHFDamping.getHFDampingScore(spatial_rir[0, :], sample_rate, False)
             else:
                 assert False
         else:
@@ -136,7 +130,20 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=F
 
     feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differentiable)
 
-    plotFeatureEvaluation(results, feature_outputs, feature, show_stimulus_ids, show_stats)
+    mean_results = np.mean(results, 1)
+    plotFeatureEvaluation(mean_results, feature_outputs, feature, show_stimulus_ids, show_stats, input_is_0_to_100=True)
+
+
+def compareDiffVsNonDiffFeatures(feature="Colouration", show_stimulus_ids=False, show_stats=False):
+    feature_rirs_dir = f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{feature}/"
+
+    _, stimulus_filenames = getFeatureResults(feature_rirs_dir, feature)
+
+    non_diff_feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, False)
+    diff_feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, True)
+
+    plotFeatureEvaluation(non_diff_feature_outputs.numpy(), diff_feature_outputs.numpy(), feature, show_stimulus_ids,
+                          show_stats, input_is_0_to_100=False)
 
 
 def predictUnpleasantnessFromRIR(rir_filepath):
@@ -198,7 +205,7 @@ if __name__ == "__main__":
     # filename = "Colouration/15.wav"
 
     # Spatial RIRs
-    filename = "Asymmetry/11.wav"
+    # filename = "Asymmetry/11.wav"
     # filename = "Asymmetry/1.wav"
 
     # Passive Rooms
@@ -214,13 +221,18 @@ if __name__ == "__main__":
     # filename = "Stimulus64.wav"
     # filename = "Stimulus101.wav"
 
-    sample_rate, spatial_rir = wavfile.read(f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{filename}")
-    SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, True)
+    # sample_rate, spatial_rir = wavfile.read(f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{filename}")
+    # SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, True)
     # FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, True)
     # Colouration.getColouration(spatial_rir[:, 0], sample_rate, True)
     # HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, True)
 
-    evaluateFeature("Colouration", show_stats=True, use_differentiable=False)
-    evaluateFeature("Asymmetry", show_stats=True, use_differentiable=False)
-    evaluateFeature("Flutter", show_stats=True, use_differentiable=False)
-    evaluateFeature("HFDamping", show_stats=True, use_differentiable=False)
+    # evaluateFeature("Colouration", show_stats=True, use_differentiable=True)
+    # evaluateFeature("Asymmetry", show_stats=True, use_differentiable=False)
+    # evaluateFeature("Flutter", show_stats=True, use_differentiable=False)
+    # evaluateFeature("HFDamping", show_stats=True, use_differentiable=False)
+
+    compareDiffVsNonDiffFeatures("Colouration", show_stats=True)
+    compareDiffVsNonDiffFeatures("Asymmetry", show_stats=True)
+    compareDiffVsNonDiffFeatures("Flutter", show_stats=True)
+    compareDiffVsNonDiffFeatures("HFDamping", show_stats=True)
