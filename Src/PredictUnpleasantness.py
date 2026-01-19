@@ -152,12 +152,15 @@ def predictUnpleasantnessFromRIR(rir_filepath):
     # Compute features
     colouration_score = Colouration.getColouration(spatial_rir[:, 0], sample_rate, False)
     asymmetry_score = SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, False)
-    flutter_echo_score = FlutterEcho.getFlutterEchoScore(spatial_rir[:, 0], sample_rate, False)
+    flutter_echo_score = FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
+    curvature_score = DSE.getCurvature(spatial_rir[:, 0], sample_rate)
+    hf_damping_score = HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate)
 
-    return predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score)
+    return predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score, curvature_score,
+                                             hf_damping_score, 0)
 
 
-def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score, curvature_score, spectral_score, prog_item, k_fold=-1):
+def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score, curvature_score, hf_damping_score, prog_item, k_fold=-1):
     if k_fold == -1:
         k_fold_index = 3
     else:
@@ -186,7 +189,7 @@ def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutte
                     + asymmetry_gradient[k_fold_index] * asymmetry_score
                     + flutter_gradient[k_fold_index] * flutter_echo_score
                     + curvature_gradient[k_fold_index] * curvature_score
-                    + hf_damping_gradient[k_fold_index] * spectral_score)
+                    + hf_damping_gradient[k_fold_index] * hf_damping_score)
 
     return linear_model
 
