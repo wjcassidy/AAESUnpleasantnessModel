@@ -64,7 +64,7 @@ def plotFeatureEvaluation(x_values, y_values, feature, show_stimulus_ids, show_s
     plt.rcParams.update({
         "text.usetex": True,
         "font.family": "CMU Serif",
-        "font.size": 24
+        "font.size": 20
     })
     plt.scatter(x_values, y_values, marker='o', color='black', s=50)
     plt.plot([0, 100 if input_is_0_to_100 else 1], linear_regression([0, 100 if input_is_0_to_100 else 1]), color='orangered', linewidth=2)
@@ -103,6 +103,8 @@ def getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differen
                 feature_outputs[file_index] = DiffFlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
             elif feature == "HFDamping":
                 feature_outputs[file_index] = DiffHFDamping.getHFDampingScore(spatial_rir[0, :], sample_rate, False)
+            elif feature == "DSE":
+                feature_outputs[file_index] = DiffDSE.getCurvature(spatial_rir[0, :], sample_rate, False)
             else:
                 assert False
         else:
@@ -114,6 +116,8 @@ def getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differen
                 feature_outputs[file_index] = FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
             elif feature == "HFDamping":
                 feature_outputs[file_index] = HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate, False)
+            elif feature == "DSE":
+                feature_outputs[file_index] = DSE.getCurvature(spatial_rir[:, 0], sample_rate, False)
             else:
                 assert False
 
@@ -135,9 +139,9 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=F
 
 
 def compareDiffVsNonDiffFeatures(feature="Colouration", show_stimulus_ids=False, show_stats=False):
-    feature_rirs_dir = f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{feature}/"
+    feature_rirs_dir = f"/Users/willcassidy/Development/GitHub/AAESUnpleasantnessModel/Audio/{'Colouration' if feature == 'DSE' else feature}/"
 
-    _, stimulus_filenames = getFeatureResults(feature_rirs_dir, feature)
+    _, stimulus_filenames = getFeatureResults(feature_rirs_dir, "Colouration" if feature == "DSE" else feature)
 
     non_diff_feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, False)
     diff_feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, True)
