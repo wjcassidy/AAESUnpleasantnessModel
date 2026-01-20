@@ -55,7 +55,7 @@ def getFeatureResults(directory, feature):
     return results, stimulus_filenames
 
 
-def plotFeatureEvaluation(x_values, y_values, feature, show_stimulus_ids, show_stats, input_is_0_to_100=True):
+def plotFeatureEvaluation(x_values, y_values, feature, show_stimulus_ids, show_stats, comparing_diff=True):
     gradient, y_intercept, r_value, p_value, std_err = stats.linregress(x_values, y_values)
     spearman_correlation, spearman_sig = stats.spearmanr(x_values, y_values)
     linear_regression = np.poly1d([gradient, y_intercept])
@@ -67,10 +67,15 @@ def plotFeatureEvaluation(x_values, y_values, feature, show_stimulus_ids, show_s
         "font.size": 20
     })
     plt.scatter(x_values, y_values, marker='o', color='black', s=50)
-    plt.plot([0, 100 if input_is_0_to_100 else 1], linear_regression([0, 100 if input_is_0_to_100 else 1]), color='orangered', linewidth=2)
-    plt.xlabel(f"Mean Listener Rating")
-    plt.ylabel(f"Predicted")
-    if input_is_0_to_100:
+    if comparing_diff:
+        plt.plot([0, 1], linear_regression([0, 1]), color='orangered', linewidth=2)
+        plt.xlabel(f"Non-Differentiable Prediction")
+        plt.ylabel(f"Differentiable Prediction")
+        plt.xlim([0, 1])
+    else:
+        plt.plot([0, 100], linear_regression([0, 100]), color='orangered', linewidth=2)
+        plt.xlabel(f"Mean Listener Rating")
+        plt.ylabel(f"Predicted")
         plt.xlim([0, 100])
     plt.ylim([0, 1])
     plt.tight_layout()
@@ -93,7 +98,7 @@ def getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differen
         sample_rate, spatial_rir = wavfile.read(filepath)
 
         if use_differentiable:
-            spatial_rir = torch.tensor(spatial_rir, dtype=torch.float32).transpose(1, 0) # Uncomment for evaluating differentiable version
+            spatial_rir = torch.tensor(spatial_rir, dtype=torch.float32).transpose(1, 0)
 
             if feature == "Colouration":
                 feature_outputs[file_index] = DiffColouration.getColouration(spatial_rir[0, :], sample_rate, False)
@@ -135,7 +140,7 @@ def evaluateFeature(feature="Colouration", show_stimulus_ids=False, show_stats=F
     feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, use_differentiable)
 
     mean_results = np.mean(results, 1)
-    plotFeatureEvaluation(mean_results, feature_outputs, feature, show_stimulus_ids, show_stats, input_is_0_to_100=True)
+    plotFeatureEvaluation(mean_results, feature_outputs, feature, show_stimulus_ids, show_stats, comparing_diff=False)
 
 
 def compareDiffVsNonDiffFeatures(feature="Colouration", show_stimulus_ids=False, show_stats=False):
@@ -146,8 +151,8 @@ def compareDiffVsNonDiffFeatures(feature="Colouration", show_stimulus_ids=False,
     non_diff_feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, False)
     diff_feature_outputs = getFeatureOutput(stimulus_filenames, feature_rirs_dir, feature, True)
 
-    plotFeatureEvaluation(non_diff_feature_outputs.numpy(), diff_feature_outputs.numpy(), feature, show_stimulus_ids,
-                          show_stats, input_is_0_to_100=False)
+    plotFeatureEvaluation(non_diff_feature_outputs, diff_feature_outputs, feature, show_stimulus_ids,
+                          show_stats, comparing_diff=True)
 
 
 def predictUnpleasantnessFromRIR(rir_filepath):
