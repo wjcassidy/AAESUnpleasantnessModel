@@ -109,17 +109,10 @@ def getMeanMagnitudeBetweenFrequencies(half_spectrum_magnitudes, sample_rate, mi
 
 def getOctaveBandsFromIR(rir, sample_rate, octave_band_resolution=1):
         # Octave bands
-        if octave_band_resolution == 1:
-            octave_band_centres = 1e3 * np.logspace(-6, 5, 12, base=2)
-            centre_to_crossover_factor = 2 ** (1 / 2)
-        else:
-            octave_band_centres = 1e3 * np.logspace(-6, 5, 34, base=2)
-            centre_to_crossover_factor = 2 ** (1 / 6)
-
-        octave_band_centres = octave_band_centres[octave_band_centres > 70]
-        octave_band_centres = octave_band_centres[octave_band_centres < 0.5 * sample_rate]
+        octave_band_centres = [125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0]
         num_bands = len(octave_band_centres)
         filter_order = 5
+        centre_to_crossover_factor = 2 ** (1 / 2)
 
         band_signals = np.zeros([len(rir), num_bands])
         for freq_idx, centre_freq in enumerate(octave_band_centres):
