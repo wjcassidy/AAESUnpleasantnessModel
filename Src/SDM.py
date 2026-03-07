@@ -137,6 +137,8 @@ def plotSpatioTemporalMap(spatial_rir, sample_rate, plane="median", num_plot_ang
 
 
 def getSpatialAsymmetryScore(spatial_rir, sample_rate, show_plots=False):
+    spatial_rir = spatial_rir / np.max(np.abs(spatial_rir))
+
     num_octave_bands = 7
     spatial_rir_octave_bands = np.zeros([num_octave_bands, len(spatial_rir[:, 0]), 4])
 
