@@ -32,6 +32,8 @@ def showPlots(mag_minus_mean_dB, colouration_score, mag_spectrum_log_trunc, mag_
 
 
 def getColouration(rir, sample_rate, should_show_plots=False):
+    rir = rir / np.max(np.abs(rir))
+
     rir_num_samples = len(rir)
 
     # Estimate T30 from -5 dB to -35 dB
