@@ -157,6 +157,7 @@ def compareDiffVsNonDiffFeatures(feature="Colouration", show_stimulus_ids=False,
 
 def predictUnpleasantnessFromRIR(rir_filepath):
     sample_rate, spatial_rir = wavfile.read(rir_filepath)
+    spatial_rir = spatial_rir / np.max(np.abs(spatial_rir))
 
     # Compute features
     colouration_score = Colouration.getColouration(spatial_rir[:, 0], sample_rate, False)
