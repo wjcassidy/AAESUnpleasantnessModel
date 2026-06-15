@@ -31,7 +31,7 @@ def showPlots(mag_minus_mean_dB, colouration_score, mag_spectrum_log_trunc, mag_
     plt.show()
 
 
-def getColouration(rir, sample_rate, should_show_plots=False):
+def getColouration(rir, sample_rate, show_plots=False):
     rir = rir / np.max(np.abs(rir))
 
     rir_num_samples = len(rir)
@@ -92,7 +92,7 @@ def getColouration(rir, sample_rate, should_show_plots=False):
     # Scale to approximately 0-1 (modification)
     colouration_score = (colouration_score - 2.5) / 14
 
-    if should_show_plots:
+    if show_plots:
         showPlots(mag_minus_mean_dB,
                   colouration_score,
                   mag_spectrum_log_trunc_dB,

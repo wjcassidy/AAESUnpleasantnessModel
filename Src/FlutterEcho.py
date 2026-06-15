@@ -67,9 +67,9 @@ def getScoreSingleChannel(rir, sample_rate, should_show_plots=False):
     return flutter_echo_score
 
 
-def getFlutterEchoScore(spatial_rir, sample_rate, should_show_plots=False):
+def getFlutterEchoScore(spatial_rir, sample_rate, show_plots=False):
     # Compute flutter score for the omnidirectional and interaural bidirectional channels
-    scores = [getScoreSingleChannel(spatial_rir[:, channel], sample_rate, should_show_plots) for channel in range(2)]
+    scores = [getScoreSingleChannel(spatial_rir[:, channel], sample_rate, show_plots) for channel in range(2)]
 
     # Output transformed summation of the channel scores
     return (np.sum(scores) + 0.75) * 2.3

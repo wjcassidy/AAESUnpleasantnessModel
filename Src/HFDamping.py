@@ -21,14 +21,14 @@ def getEarlyAndLateRIR(rir, sample_rate, early_start_dB, early_end_dB, late_star
     return early_rir, late_rir
 
 
-def getHFDampingScore(rir, sample_rate, should_show_plots=False):
+def getHFDampingScore(rir, sample_rate, show_plots=False):
     # Split early and late regions of the RIR
     early_rir, late_rir = getEarlyAndLateRIR(rir, sample_rate, -1, -15, -35, -40)
 
     # indexed by early/late region
     mean_magnitudes = np.zeros(2)
 
-    if should_show_plots:
+    if show_plots:
         plt.figure()
 
     for rir_index, rir_region in enumerate([early_rir, late_rir]):
@@ -49,14 +49,14 @@ def getHFDampingScore(rir, sample_rate, should_show_plots=False):
         # Get mean early and late magnitudes
         mean_magnitudes[rir_index] = np.mean(mag_spectrum_log_smoothed)
 
-        if should_show_plots:
+        if show_plots:
             drawPlot(mag_spectrum_log_smoothed, frequencies, mean_magnitudes[rir_index])
 
     # Return (late - early) transformed to 0.2-0.8
     hf_damping_score = mean_magnitudes[1] - mean_magnitudes[0]
     hf_damping_score = (hf_damping_score + 28) / 33
 
-    if should_show_plots:
+    if show_plots:
         plt.rcParams.update({
             "font.size": 14
         })
