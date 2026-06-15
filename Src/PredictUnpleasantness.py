@@ -167,41 +167,56 @@ def predictUnpleasantnessFromRIR(rir_filepath):
     hf_damping_score = HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate)
 
     return predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score, curvature_score,
-                                             hf_damping_score, 0)
+                                             hf_damping_score, 0, use_max_from_both=True)
 
 
-def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score, curvature_score, hf_damping_score, prog_item, k_fold=-1):
+def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score, curvature_score, hf_damping_score, prog_item, k_fold=-1, use_max_from_both=False, use_adjusted_submodels=False):
     if k_fold == -1:
         k_fold_index = 3
     else:
         k_fold_index = k_fold - 1
 
-    # First three values are from the respective k-fold, the last is trained on all data
-    if prog_item == 1:
-        y_intercept =          [4.014,  -6.114, -13.399, 0.441]
-        colouration_gradient = [19.661, 63.282, 29.815,  29.566]
-        flutter_gradient =     [14.186, 23.199, 15.996,  12.387]
-        asymmetry_gradient =   [13.808, 2.134,  29.673, 23.356]
-        curvature_gradient =   [25.760, 41.189, 31.543,  27.132]
-        hf_damping_gradient =  [19.898, 11.748, 26.366,  16.431]
-    elif prog_item == 2:
-        y_intercept =          [29.475,  23.835,  15.898,  21.370]
-        colouration_gradient = [56.435,  56.939,  70.117,  64.888]
-        flutter_gradient =     [-4.435,  -13.447, -8.640, -9.772]
-        asymmetry_gradient =   [-20.606, -6.970,  -1.446, -7.511]
-        curvature_gradient =   [11.943,  36.026,  14.487, 14.986]
-        hf_damping_gradient =  [-18.884, -23.701, -16.167,  -17.549]
+    if use_max_from_both:
+        prog_item_1_unpleas = predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score,
+                                                                curvature_score, hf_damping_score, 1, k_fold=k_fold,
+                                                                use_max_from_both=False, use_adjusted_submodels=use_adjusted_submodels)
+        prog_item_2_unpleas = predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutter_echo_score,
+                                                                curvature_score, hf_damping_score, 2, k_fold=k_fold,
+                                                                use_max_from_both=False, use_adjusted_submodels=use_adjusted_submodels)
+        return np.max([prog_item_1_unpleas, prog_item_2_unpleas])
     else:
-        assert False
+        # First three values are from the respective k-fold, the last is trained on all data
+        if prog_item == 1:
+            y_intercept =          [4.014,  -6.114, -13.399, 0.441]
+            colouration_gradient = [19.661, 63.282, 29.815,  29.566]
+            flutter_gradient =     [14.186, 23.199, 15.996,  12.387]
+            asymmetry_gradient =   [13.808, 2.134,  29.673, 23.356]
+            curvature_gradient =   [25.760, 41.189, 31.543,  27.132]
+            hf_damping_gradient =  [19.898, 11.748, 26.366,  16.431]
+        elif prog_item == 2:
+            y_intercept =          [29.475,  23.835,  15.898,  21.370]
+            colouration_gradient = [56.435,  56.939,  70.117,  64.888]
+            flutter_gradient =     [-4.435,  -13.447, -8.640, -9.772]
+            asymmetry_gradient =   [-20.606, -6.970,  -1.446, -7.511]
+            curvature_gradient =   [11.943,  36.026,  14.487, 14.986]
+            hf_damping_gradient =  [-18.884, -23.701, -16.167,  -17.549]
+        else:
+            assert False
 
-    linear_model = (y_intercept[k_fold_index]
-                    + colouration_gradient[k_fold_index] * colouration_score
-                    + asymmetry_gradient[k_fold_index] * asymmetry_score
-                    + flutter_gradient[k_fold_index] * flutter_echo_score
-                    + curvature_gradient[k_fold_index] * curvature_score
-                    + hf_damping_gradient[k_fold_index] * hf_damping_score)
+        linear_model = (y_intercept[k_fold_index]
+                        + colouration_gradient[k_fold_index] * colouration_score
+                        + asymmetry_gradient[k_fold_index] * asymmetry_score
+                        + flutter_gradient[k_fold_index] * flutter_echo_score
+                        + curvature_gradient[k_fold_index] * curvature_score
+                        + hf_damping_gradient[k_fold_index] * hf_damping_score)
 
-    return linear_model
+        if use_adjusted_submodels:
+            if prog_item == 1:
+                return  (linear_model - 13.14) / 0.7061
+
+            return  (linear_model - 6.992) / 0.7361
+        else:
+            return linear_model
 
 
 if __name__ == "__main__":
