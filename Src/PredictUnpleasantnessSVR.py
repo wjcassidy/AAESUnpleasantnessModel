@@ -17,7 +17,7 @@ MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SVRModels"
 _model_cache = {}
 
 
-def _loadModel(prog_item, k_fold):
+def _loadModel(prog_item, k_fold=-1):
     if k_fold == -1:
         filename = f"prog_item_{prog_item}_full.joblib"
     else:

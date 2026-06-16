@@ -4,9 +4,9 @@ import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import linregress, spearmanr
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import GridSearchCV, GroupKFold
+from sklearn.model_selection import GridSearchCV, GroupKFold, PredefinedSplit
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
@@ -18,11 +18,20 @@ MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SVRModels"
 # curvature_score, hf_damping_score arguments of predictUnpleasantnessFromFeaturesSVR
 FEATURE_NAMES = ["colouration", "asymmetry", "flutter_echo", "curvature", "hf_damping"]
 
+# Uncomment this for coarse search
+# PARAM_GRID = {
+#     "svr__kernel": ['rbf', 'linear', 'poly'],
+#     "svr__C": [0.1, 1, 10, 100, 1000],
+#     "svr__gamma": ['scale', 'auto', 0.001, 0.01, 0.1, 1],
+#     "svr__epsilon": [0.001, 0.01, 0.1, 0.2, 0.5, 1]
+# }
+
+# Uncomment this for fine search
 PARAM_GRID = {
-    "svr__kernel": ["rbf"],
-    "svr__C": [2, 4, 6],
-    "svr__gamma": ["scale", "auto", 0.1, 1],
-    "svr__epsilon": [0.5, 1, 2, 5],
+    "svr__kernel": ['rbf'],
+    "svr__C": [1, 2, 4, 6],
+    "svr__gamma": [0.001, 0.005, 0.01, 0.05, 0.1],
+    "svr__epsilon": [2, 4, 6, 8, 10]
 }
 
 
@@ -33,15 +42,20 @@ def loadProgItemData(prog_item):
     X = df[FEATURE_NAMES].values
     y = df["rating"].values
     groups = df["stimulus_id"].values
+    rooms = df["room_size"].values
 
-    return X, y, groups
+    return X, y, groups, rooms
 
 
-def searchSVR(X, y, groups, n_splits=3):
+def searchSVR(X_train, y_train, X_test, y_test):
+    X_combined = np.vstack([X_train, X_test])
+    y_combined = np.concatenate([y_train, y_test])
+    test_fold = np.concatenate([-np.ones(len(X_train), dtype=int),
+                                 np.zeros(len(X_test), dtype=int)])
+
     pipeline = make_pipeline(StandardScaler(), SVR())
-
-    search = GridSearchCV(pipeline, PARAM_GRID, cv=GroupKFold(n_splits=n_splits), scoring="r2", n_jobs=-1)
-    search.fit(X, y, groups=groups)
+    search = GridSearchCV(pipeline, PARAM_GRID, cv=PredefinedSplit(test_fold), scoring="r2", n_jobs=-1)
+    search.fit(X_combined, y_combined)
 
     return search
 
@@ -54,48 +68,91 @@ def fitSVR(X, y, params):
     return pipeline
 
 
-# Plots the mean cross-validated R^2 for every combination in PARAM_GRID, as a grid of
-# heatmaps (one per epsilon value), with the chosen combination highlighted
+# Plots the mean cross-validated R^2 for every combination in PARAM_GRID, as one figure
+# per kernel. Each figure shows a grid of heatmaps (one per epsilon value) of C vs gamma,
+# with the chosen combination highlighted on the matching kernel's figure
 def plotGridSearchResults(search, prog_item):
     results = pd.DataFrame(search.cv_results_)
     best_params = search.best_params_
 
+    kernel_values = PARAM_GRID["svr__kernel"]
     c_values = PARAM_GRID["svr__C"]
     gamma_values = PARAM_GRID["svr__gamma"]
     epsilon_values = PARAM_GRID["svr__epsilon"]
 
-    fig, axes = plt.subplots(1, len(epsilon_values), figsize=(4 * len(epsilon_values), 4), sharey=True)
+    for kernel in kernel_values:
+        fig, axes = plt.subplots(1, len(epsilon_values), figsize=(4 * len(epsilon_values), 4), sharey=True)
 
-    for ax, epsilon in zip(axes, epsilon_values):
-        score_grid = np.zeros((len(c_values), len(gamma_values)))
+        for ax, epsilon in zip(axes, epsilon_values):
+            score_grid = np.zeros((len(c_values), len(gamma_values)))
 
-        for i, c in enumerate(c_values):
-            for j, gamma in enumerate(gamma_values):
-                row = results[(results["param_svr__C"] == c)
-                              & (results["param_svr__gamma"] == gamma)
-                              & (results["param_svr__epsilon"] == epsilon)]
-                score_grid[i, j] = row["mean_test_score"].values[0]
+            for i, c in enumerate(c_values):
+                for j, gamma in enumerate(gamma_values):
+                    row = results[(results["param_svr__kernel"] == kernel)
+                                  & (results["param_svr__C"] == c)
+                                  & (results["param_svr__gamma"] == gamma)
+                                  & (results["param_svr__epsilon"] == epsilon)]
+                    score_grid[i, j] = row["mean_test_score"].values[0]
 
-        im = ax.imshow(score_grid, cmap="viridis", aspect="auto")
-        ax.set_xticks(range(len(gamma_values)))
-        ax.set_xticklabels(gamma_values)
-        ax.set_yticks(range(len(c_values)))
-        ax.set_yticklabels(c_values)
-        ax.set_xlabel("gamma")
-        ax.set_title(f"epsilon = {epsilon}")
-        fig.colorbar(im, ax=ax)
+            im = ax.imshow(score_grid, cmap="viridis", aspect="auto")
+            ax.set_xticks(range(len(gamma_values)))
+            ax.set_xticklabels(gamma_values)
+            ax.set_yticks(range(len(c_values)))
+            ax.set_yticklabels(c_values)
+            ax.set_xlabel("gamma")
+            ax.set_title(f"epsilon = {epsilon}")
+            fig.colorbar(im, ax=ax)
 
-        if best_params["svr__epsilon"] == epsilon:
-            best_row = c_values.index(best_params["svr__C"])
-            best_col = gamma_values.index(best_params["svr__gamma"])
-            ax.add_patch(plt.Rectangle((best_col - 0.5, best_row - 0.5), 1, 1, fill=False,
-                                       edgecolor="red", linewidth=3))
+            if best_params["svr__kernel"] == kernel and best_params["svr__epsilon"] == epsilon:
+                best_row = c_values.index(best_params["svr__C"])
+                best_col = gamma_values.index(best_params["svr__gamma"])
+                ax.add_patch(plt.Rectangle((best_col - 0.5, best_row - 0.5), 1, 1, fill=False,
+                                           edgecolor="red", linewidth=3))
 
-    axes[0].set_ylabel("C")
-    fig.suptitle(f"Prog item {prog_item}: SVR grid search (R^2), full dataset, "
-                 f"best = {best_params}")
-    plt.tight_layout()
+        axes[0].set_ylabel("C")
+        fig.suptitle(f"Prog item {prog_item}: SVR grid search ($R^2$), kernel={kernel}, "
+                     f"best = {best_params}")
+        plt.tight_layout()
+        plt.show()
+
+
+def plotMaxPredictions(all_true, all_pred, all_groups, test_stimulus_ids_pi1, test_stimulus_ids_pi2):
+    test_ids_per_prog_item = {1: test_stimulus_ids_pi1, 2: test_stimulus_ids_pi2}
+
+    max_true = np.array([np.max([all_true[p][all_groups[p] == test_ids_per_prog_item[p][i]].mean()
+                                 for p in [1, 2]])
+                         for i in range(len(test_stimulus_ids_pi1))])
+    max_pred = np.array([np.max([all_pred[p][all_groups[p] == test_ids_per_prog_item[p][i]].mean()
+                                 for p in [1, 2]])
+                         for i in range(len(test_stimulus_ids_pi1))])
+
+    gradient, y_intercept, r_value, _, _ = linregress(max_true, max_pred)
+    spearman_correlation, _ = spearmanr(max_true, max_pred)
+    regression_line = np.poly1d([gradient, y_intercept])
+
+    plt.rcParams["text.usetex"] = True
+    plt.rcParams["font.family"] = "serif"
+
+    fig = plt.figure(figsize=(5, 4), dpi=150)
+    fig.set_layout_engine("tight")
+
+    x_range = [0, 100]
+    plt.plot([0, 100], [0, 100], linestyle='--', color='black', linewidth=0.8, dashes=(10,5))
+    plt.plot(max_true, max_pred, marker="o", markersize=3.5, linewidth=0, color="black")
+    plt.plot(x_range, regression_line(x_range), color="orangered", linewidth=1.3)
+    plt.xlabel("Mean Unpleasantness Z-Score", fontsize=16)
+    plt.ylabel("Predicted Unpleasantness Z-Score", fontsize=16)
+    plt.tick_params(axis="both", which="major", labelsize=14)
+    plt.title(f"$R^2$ = {np.round(r_value ** 2, 4)}, $r_s$ = {np.round(spearman_correlation, 4)}")
+    plt.xlim([0, 100])
+    plt.ylim([0, 100])
+
     plt.show()
+
+
+def printModelInfo(model, X):
+    svr = model.named_steps["svr"]
+    print(f"  Support vectors: {svr.n_support_[0]} / {len(X)} training samples")
 
 
 def evaluateModel(model, X, y):
@@ -106,13 +163,21 @@ def evaluateModel(model, X, y):
     return rmse, r2, spearman_correlation
 
 
-# Grid search is run only on the full dataset, giving a single hyperparameter choice for the
-# programme item. The k-fold splits then only re-fit with those fixed hyperparameters, purely
-# to evaluate held-out performance, mirroring the k-fold scheme used by the MLR model
-def generateModelsForProgItem(prog_item):
-    X, y, groups = loadProgItemData(prog_item)
+# Hyperparameters are selected using the validation set. K-fold models are trained on the
+# training set only, grouped by room so each fold holds out one room. The saved full model
+# is trained on train+val (not retrained on test data).
+# Returns (y_true, y_pred, groups) for the test stimuli, for use in the combined max plot
+def generateModelsForProgItem(prog_item, train_stimulus_ids, val_stimulus_ids, test_stimulus_ids):
+    X, y, groups, rooms = loadProgItemData(prog_item)
 
-    full_search = searchSVR(X, y, groups)
+    train_mask = np.isin(groups, train_stimulus_ids)
+    val_mask = np.isin(groups, val_stimulus_ids)
+    test_mask = np.isin(groups, test_stimulus_ids)
+    X_train, y_train = X[train_mask], y[train_mask]
+    X_val, y_val = X[val_mask], y[val_mask]
+    X_test, y_test = X[test_mask], y[test_mask]
+
+    full_search = searchSVR(X_train, y_train, X_val, y_val)
     best_params = full_search.best_params_
     print(f"Prog item {prog_item}: best params = {best_params}")
 
@@ -120,25 +185,80 @@ def generateModelsForProgItem(prog_item):
 
     group_kfold = GroupKFold(n_splits=3)
 
-    for fold_index, (train_indices, test_indices) in enumerate(group_kfold.split(X, y, groups)):
-        model = fitSVR(X[train_indices], y[train_indices], best_params)
+    for fold_index, (train_indices, val_indices) in enumerate(group_kfold.split(X_train, y_train, rooms[train_mask])):
+        model = fitSVR(X_train[train_indices], y_train[train_indices], best_params)
 
-        rmse, r2, spearman_correlation = evaluateModel(model, X[test_indices], y[test_indices])
-        print(f"Prog item {prog_item}, fold {fold_index + 1}:")
+        rmse, r2, spearman_correlation = evaluateModel(model, X_train[val_indices], y_train[val_indices])
+        held_out_room = np.unique(rooms[train_mask][val_indices])
+        print(f"Prog item {prog_item}, fold {fold_index + 1} (room {held_out_room}):")
         print(f"  Held-out RMSE = {rmse:.3f}, R^2 = {r2:.3f}, Spearman = {spearman_correlation:.3f}")
+        printModelInfo(model, X_train[train_indices])
 
         joblib.dump(model, os.path.join(MODEL_DIR, f"prog_item_{prog_item}_fold_{fold_index + 1}.joblib"))
 
-    full_model = fitSVR(X, y, best_params)
-    rmse, r2, spearman_correlation = evaluateModel(full_model, X, y)
-    print(f"Prog item {prog_item}, full model:")
-    print(f"  Training RMSE = {rmse:.3f}, R^2 = {r2:.3f}, Spearman = {spearman_correlation:.3f}")
+    X_train_val = np.vstack([X_train, X_val])
+    y_train_val = np.concatenate([y_train, y_val])
+    full_model = fitSVR(X_train_val, y_train_val, best_params)
+    y_pred = full_model.predict(X_test)
+    rmse, r2, spearman_correlation = evaluateModel(full_model, X_test, y_test)
+    print(f"Prog item {prog_item}, full model "
+          f"({len(train_stimulus_ids)} train / {len(val_stimulus_ids)} val / {len(test_stimulus_ids)} test stimuli):")
+    print(f"  Test RMSE = {rmse:.3f}, R^2 = {r2:.3f}, Spearman = {spearman_correlation:.3f}")
+    printModelInfo(full_model, X_train_val)
 
-    joblib.dump(full_model, os.path.join(MODEL_DIR, f"prog_item_{prog_item}_full.joblib"))
+    return y_test, y_pred, groups[test_mask], best_params
+
+
+def generateAllModels(test_size=0.3, val_size=0.1, random_state=42):
+    df = pd.read_csv(DATA_FILEPATH)
+
+    # Each RIR maps to one stimulus_id per programme item; split at the RIR level so both
+    # programme item models use the same physical rooms in each partition
+    rir_cols = ["room_size", "absorption", "rt_ratio", "loop_gain_dB", "filter", "routing"]
+    rir_to_stimulus_ids = df.groupby(rir_cols)["stimulus_id"].unique()
+
+    n_rirs = len(rir_to_stimulus_ids)
+    rng = np.random.default_rng(random_state)
+    shuffled_rirs = rng.permutation(n_rirs)
+    n_test = int(n_rirs * test_size)
+    n_val = int(n_rirs * val_size)
+    test_rir_indices = shuffled_rirs[:n_test]
+    val_rir_indices = shuffled_rirs[n_test:n_test + n_val]
+    train_rir_indices = shuffled_rirs[n_test + n_val:]
+
+    pi_ids = {p: set(df[df["prog_item"] == p]["stimulus_id"].values) for p in [1, 2]}
+
+    def stimulusIdsForProgItem(rir_indices, prog_item):
+        ids = []
+        for i in rir_indices:
+            ids.extend(sid for sid in rir_to_stimulus_ids.iloc[i] if sid in pi_ids[prog_item])
+        return np.array(ids)
+
+    all_true, all_pred, all_groups, all_best_params = {}, {}, {}, {}
+
+    for prog_item in [1, 2]:
+        train_stimulus_ids = stimulusIdsForProgItem(train_rir_indices, prog_item)
+        val_stimulus_ids = stimulusIdsForProgItem(val_rir_indices, prog_item)
+        test_stimulus_ids = stimulusIdsForProgItem(test_rir_indices, prog_item)
+        y_true, y_pred, groups, best_params = generateModelsForProgItem(prog_item, train_stimulus_ids,
+                                                                         val_stimulus_ids, test_stimulus_ids)
+        all_true[prog_item] = y_true
+        all_pred[prog_item] = y_pred
+        all_groups[prog_item] = groups
+        all_best_params[prog_item] = best_params
+
+    plotMaxPredictions(all_true, all_pred, all_groups,
+                       stimulusIdsForProgItem(test_rir_indices, 1),
+                       stimulusIdsForProgItem(test_rir_indices, 2))
+
+    for prog_item in [1, 2]:
+        X, y, _, _ = loadProgItemData(prog_item)
+        final_model = fitSVR(X, y, all_best_params[prog_item])
+        print(f"Prog item {prog_item}, final model (all data):")
+        printModelInfo(final_model, X)
+        joblib.dump(final_model, os.path.join(MODEL_DIR, f"prog_item_{prog_item}_full.joblib"))
 
 
 if __name__ == "__main__":
     os.makedirs(MODEL_DIR, exist_ok=True)
-
-    for prog_item in [1, 2]:
-        generateModelsForProgItem(prog_item)
+    generateAllModels()
