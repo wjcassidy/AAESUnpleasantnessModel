@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.stats import linregress, spearmanr
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV, GroupKFold, PredefinedSplit
+from sklearn.inspection import PartialDependenceDisplay, permutation_importance
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
@@ -209,6 +210,36 @@ def generateModelsForProgItem(prog_item, train_stimulus_ids, val_stimulus_ids, t
     return y_test, y_pred, groups[test_mask], best_params
 
 
+def plotModelInterpretation(model, X, y, prog_item):
+    plt.rcParams["text.usetex"] = True
+    plt.rcParams["font.family"] = "serif"
+
+    # Permutation importance: drop in R^2 when each feature is randomly shuffled
+    perm = permutation_importance(model, X, y, n_repeats=30, scoring="r2", random_state=42, n_jobs=-1)
+    sorted_indices = np.argsort(perm.importances_mean)
+
+    fig, ax = plt.subplots(figsize=(5, 4), dpi=150)
+    fig.set_layout_engine("tight")
+    ax.barh(range(len(FEATURE_NAMES)), perm.importances_mean[sorted_indices],
+            xerr=perm.importances_std[sorted_indices], color="steelblue", ecolor="black", capsize=3)
+    ax.set_yticks(range(len(FEATURE_NAMES)))
+    ax.set_yticklabels([FEATURE_NAMES[i] for i in sorted_indices], fontsize=13)
+    ax.set_xlabel("Permutation importance ($R^2$ decrease)", fontsize=13)
+    ax.set_title(f"Prog item {prog_item}", fontsize=13)
+    plt.show()
+
+    # Partial dependence: marginal effect of each feature on prediction (others held at mean)
+    fig, axes = plt.subplots(1, len(FEATURE_NAMES), figsize=(3 * len(FEATURE_NAMES), 3.5), dpi=150)
+    fig.set_layout_engine("tight")
+    PartialDependenceDisplay.from_estimator(model, X, features=range(len(FEATURE_NAMES)),
+                                            feature_names=FEATURE_NAMES, ax=axes, line_kw={"color": "steelblue"})
+    for ax in axes:
+        ax.set_title(ax.get_title(), fontsize=11)
+        ax.set_xlabel(ax.get_xlabel(), fontsize=10)
+    fig.suptitle(f"Partial dependence — prog item {prog_item}", fontsize=13)
+    plt.show()
+
+
 def generateAllModels(test_size=0.3, val_size=0.1, random_state=42):
     df = pd.read_csv(DATA_FILEPATH)
 
@@ -256,6 +287,7 @@ def generateAllModels(test_size=0.3, val_size=0.1, random_state=42):
         final_model = fitSVR(X, y, all_best_params[prog_item])
         print(f"Prog item {prog_item}, final model (all data):")
         printModelInfo(final_model, X)
+        plotModelInterpretation(final_model, X, y, prog_item)
         joblib.dump(final_model, os.path.join(MODEL_DIR, f"prog_item_{prog_item}_full.joblib"))
 
 
