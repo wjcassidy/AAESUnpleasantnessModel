@@ -36,7 +36,7 @@ def predictUnpleasantnessFromRIR(rir_filepath):
     spatial_rir = spatial_rir / np.max(np.abs(spatial_rir))
 
     colouration_score = Colouration.getColouration(spatial_rir[:, 0], sample_rate, False)
-    asymmetry_score = SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, False)
+    asymmetry_score = 0#SDM.getSpatialAsymmetryScore(spatial_rir, sample_rate, False)
     flutter_echo_score = FlutterEcho.getFlutterEchoScore(spatial_rir, sample_rate, False)
     curvature_score = DSE.getCurvature(spatial_rir[:, 0], sample_rate)
     hf_damping_score = HFDamping.getHFDampingScore(spatial_rir[:, 0], sample_rate)
@@ -64,8 +64,8 @@ def predictUnpleasantnessFromFeaturesSVR(colouration_score, asymmetry_score, flu
 
     model = _loadModel(prog_item, k_fold)
 
-    features = np.array([[colouration_score, asymmetry_score, flutter_echo_score, curvature_score,
-                           hf_damping_score]])
+    features = np.array([[colouration_score, flutter_echo_score, curvature_score,
+                           hf_damping_score]])  # asymmetry_score temporarily excluded
 
     return model.predict(features)[0]
 

@@ -187,19 +187,19 @@ def predictUnpleasantnessFromFeatures(colouration_score, asymmetry_score, flutte
     else:
         # First three values are from the respective k-fold, the last is trained on all data
         if prog_item == 1:
-            y_intercept =          [4.014,  -6.114, -13.399, 0.441]
-            colouration_gradient = [19.661, 63.282, 29.815,  29.566]
-            flutter_gradient =     [14.186, 23.199, 15.996,  12.387]
-            asymmetry_gradient =   [13.808, 2.134,  29.673, 23.356]
-            curvature_gradient =   [25.760, 41.189, 31.543,  27.132]
-            hf_damping_gradient =  [19.898, 11.748, 26.366,  16.431]
+            y_intercept =          [4.014,  -6.114, -13.399, -4.226]# 0.441]
+            colouration_gradient = [19.661, 63.282, 29.815, 40.846]#  29.566]
+            flutter_gradient =     [14.186, 23.199, 15.996, 19.278]#  12.387]
+            asymmetry_gradient =   [13.808, 2.134,  29.673, 0.0]# 23.356]
+            curvature_gradient =   [25.760, 41.189, 31.543, 32.459]#  27.132]
+            hf_damping_gradient =  [19.898, 11.748, 26.366, 28.108]#  16.431]
         elif prog_item == 2:
-            y_intercept =          [29.475,  23.835,  15.898,  21.370]
-            colouration_gradient = [56.435,  56.939,  70.117,  64.888]
-            flutter_gradient =     [-4.435,  -13.447, -8.640, -9.772]
-            asymmetry_gradient =   [-20.606, -6.970,  -1.446, -7.511]
-            curvature_gradient =   [11.943,  36.026,  14.487, 14.986]
-            hf_damping_gradient =  [-18.884, -23.701, -16.167,  -17.549]
+            y_intercept =          [29.475,  23.835,  15.898, 24.317]# 21.370]
+            colouration_gradient = [56.435,  56.939,  70.117, 62.002]# 64.888]
+            flutter_gradient =     [-4.435,  -13.447, -8.640, -11.946]#-9.772]
+            asymmetry_gradient =   [-20.606, -6.970,  -1.446, 0.0]#-7.511]
+            curvature_gradient =   [11.943,  36.026,  14.487,  13.019]# 14.986]
+            hf_damping_gradient =  [-18.884, -23.701, -16.167, -23.195]#-17.549]
         else:
             assert False
 

@@ -17,7 +17,7 @@ MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SVRModels"
 
 # Order matches the colouration_score, asymmetry_score, flutter_echo_score,
 # curvature_score, hf_damping_score arguments of predictUnpleasantnessFromFeaturesSVR
-FEATURE_NAMES = ["colouration", "asymmetry", "flutter_echo", "curvature", "hf_damping"]
+FEATURE_NAMES = ["colouration", "flutter_echo", "curvature", "hf_damping"]  # "asymmetry" excluded
 
 # Uncomment this for coarse search
 # PARAM_GRID = {
