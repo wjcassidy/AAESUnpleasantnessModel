@@ -24,9 +24,11 @@ def getEnergyTimeCurve(rir, sample_rate, window_duration_ms: float = 10.0):
 
     energy_time_curve = np.zeros(int(num_rir_samples / window_length_samples))
 
+    epsilon = 1e-12
+
     for window_index, sample_index in enumerate(range(0, int(num_rir_samples - window_length_samples), window_length_samples)):
         summation = np.sum(squared_rir[sample_index:sample_index + window_length_samples])
-        energy_time_curve[window_index] = 10 * np.log10(summation)
+        energy_time_curve[window_index] = 10 * np.log10(summation + epsilon)
 
     time_values = [(energy_bin * window_length_samples) / sample_rate for energy_bin in range(len(energy_time_curve))]
 

@@ -4,9 +4,9 @@ import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import linregress, spearmanr
+from scipy.stats import linregress, spearmanr, ttest_1samp
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import GridSearchCV, GroupKFold, PredefinedSplit
+from sklearn.model_selection import GridSearchCV, PredefinedSplit
 from sklearn.inspection import PartialDependenceDisplay, permutation_importance
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -117,34 +117,40 @@ def plotGridSearchResults(search, prog_item):
         plt.show()
 
 
-def plotMaxPredictions(all_true, all_pred, all_groups, test_stimulus_ids_pi1, test_stimulus_ids_pi2):
-    test_ids_per_prog_item = {1: test_stimulus_ids_pi1, 2: test_stimulus_ids_pi2}
-
-    max_true = np.array([np.max([all_true[p][all_groups[p] == test_ids_per_prog_item[p][i]].mean()
-                                 for p in [1, 2]])
-                         for i in range(len(test_stimulus_ids_pi1))])
-    max_pred = np.array([np.max([all_pred[p][all_groups[p] == test_ids_per_prog_item[p][i]].mean()
-                                 for p in [1, 2]])
-                         for i in range(len(test_stimulus_ids_pi1))])
-
-    gradient, y_intercept, r_value, _, _ = linregress(max_true, max_pred)
-    spearman_correlation, _ = spearmanr(max_true, max_pred)
-    regression_line = np.poly1d([gradient, y_intercept])
-
+def plotMaxPredictions(sets):
     plt.rcParams["text.usetex"] = True
     plt.rcParams["font.family"] = "serif"
 
     fig = plt.figure(figsize=(5, 4), dpi=150)
     fig.set_layout_engine("tight")
 
-    x_range = [0, 100]
-    plt.plot([0, 100], [0, 100], linestyle='--', color='black', linewidth=0.8, dashes=(10,5))
-    plt.plot(max_true, max_pred, marker="o", markersize=3.5, linewidth=0, color="black")
-    plt.plot(x_range, regression_line(x_range), color="orangered", linewidth=1.3)
-    plt.xlabel("Mean Unpleasantness Z-Score", fontsize=16)
-    plt.ylabel("Predicted Unpleasantness Z-Score", fontsize=16)
+    x_range = np.array([0, 100])
+    plt.plot(x_range, x_range, linestyle='--', color='black', linewidth=0.8, dashes=(10, 5))
+
+    for s in sets:
+        ids_per_pi = {1: s["ids_pi1"], 2: s["ids_pi2"]}
+        n = len(s["ids_pi1"])
+        max_true = np.array([np.max([s["all_true"][p][s["all_groups"][p] == ids_per_pi[p][i]].mean()
+                                      for p in [1, 2]])
+                              for i in range(n)])
+        max_pred = np.array([np.max([s["all_pred"][p][s["all_groups"][p] == ids_per_pi[p][i]].mean()
+                                      for p in [1, 2]])
+                              for i in range(n)])
+
+        gradient, y_intercept, r_value, _, _ = linregress(max_true, max_pred)
+        spearman_r, _ = spearmanr(max_true, max_pred)
+        regression_line = np.poly1d([gradient, y_intercept])
+
+        label = rf"{s['label']}: $R^2$={r_value**2:.2g}, $r_s$={spearman_r:.2g}"
+
+        plt.plot(x_range, regression_line(x_range), color=s["color"], linewidth=1.0, alpha=0.7)
+        plt.plot(max_true, max_pred, marker=s["marker"], markersize=s["markersize"], linewidth=0,
+                 color=s["color"], label=label)
+
+    plt.xlabel("Mean Unpleasantness Rating", fontsize=16)
+    plt.ylabel("Predicted Unpleasantness Rating", fontsize=16)
     plt.tick_params(axis="both", which="major", labelsize=14)
-    plt.title(f"$R^2$ = {np.round(r_value ** 2, 4)}, $r_s$ = {np.round(spearman_correlation, 4)}")
+    plt.legend(fontsize=12, loc="upper left", handletextpad=0.3, frameon=False)
     plt.xlim([0, 100])
     plt.ylim([0, 100])
 
@@ -165,9 +171,9 @@ def evaluateModel(model, X, y):
 
 
 # Hyperparameters are selected using the validation set. K-fold models are trained on the
-# training set only, grouped by room so each fold holds out one room. The saved full model
-# is trained on train+val (not retrained on test data).
-# Returns (y_true, y_pred, groups) for the test stimuli, for use in the combined max plot
+# training set only, grouped by room so each fold holds out one room. The full model is also
+# trained on the training set only and returned for saving after the plot in generateAllModels.
+# Returns (y_true, y_pred, groups, full_model) for the test stimuli and the fitted model
 def generateModelsForProgItem(prog_item, train_stimulus_ids, val_stimulus_ids, test_stimulus_ids):
     X, y, groups, rooms = loadProgItemData(prog_item)
 
@@ -184,30 +190,60 @@ def generateModelsForProgItem(prog_item, train_stimulus_ids, val_stimulus_ids, t
 
     plotGridSearchResults(full_search, prog_item)
 
-    group_kfold = GroupKFold(n_splits=3)
+    # Leave-one-room-out: fold index i always holds out room i, regardless of room sizes/order
+    rooms_train = rooms[train_mask]
+    held_out_rooms = np.unique(rooms_train)
 
-    for fold_index, (train_indices, val_indices) in enumerate(group_kfold.split(X_train, y_train, rooms[train_mask])):
+    for fold_index, held_out_room in enumerate(held_out_rooms):
+        val_indices = np.flatnonzero(rooms_train == held_out_room)
+        train_indices = np.flatnonzero(rooms_train != held_out_room)
+
         model = fitSVR(X_train[train_indices], y_train[train_indices], best_params)
 
         rmse, r2, spearman_correlation = evaluateModel(model, X_train[val_indices], y_train[val_indices])
-        held_out_room = np.unique(rooms[train_mask][val_indices])
         print(f"Prog item {prog_item}, fold {fold_index + 1} (room {held_out_room}):")
         print(f"  Held-out RMSE = {rmse:.3f}, R^2 = {r2:.3f}, Spearman = {spearman_correlation:.3f}")
         printModelInfo(model, X_train[train_indices])
 
         joblib.dump(model, os.path.join(MODEL_DIR, f"prog_item_{prog_item}_fold_{fold_index + 1}.joblib"))
 
-    X_train_val = np.vstack([X_train, X_val])
-    y_train_val = np.concatenate([y_train, y_val])
-    full_model = fitSVR(X_train_val, y_train_val, best_params)
-    y_pred = full_model.predict(X_test)
+    full_model = fitSVR(X_train, y_train, best_params)
+    y_pred_test = full_model.predict(X_test)
     rmse, r2, spearman_correlation = evaluateModel(full_model, X_test, y_test)
     print(f"Prog item {prog_item}, full model "
           f"({len(train_stimulus_ids)} train / {len(val_stimulus_ids)} val / {len(test_stimulus_ids)} test stimuli):")
     print(f"  Test RMSE = {rmse:.3f}, R^2 = {r2:.3f}, Spearman = {spearman_correlation:.3f}")
-    printModelInfo(full_model, X_train_val)
+    printModelInfo(full_model, X_train)
 
-    return y_test, y_pred, groups[test_mask], best_params
+    return (y_train, full_model.predict(X_train), groups[train_mask],
+            y_val, full_model.predict(X_val), groups[val_mask],
+            y_test, y_pred_test, groups[test_mask],
+            full_model, best_params)
+
+
+def holmBonferroni(p_values):
+    """Holm-Bonferroni step-down correction for multiple comparisons."""
+    p_values = np.asarray(p_values)
+    order = np.argsort(p_values)
+    n = len(p_values)
+
+    adjusted = np.empty(n)
+    running_max = 0.0
+    for rank, idx in enumerate(order):
+        running_max = max(running_max, p_values[idx] * (n - rank))
+        adjusted[idx] = min(running_max, 1.0)
+
+    return adjusted
+
+
+def significanceStars(p_value):
+    if p_value < 0.001:
+        return "***"
+    if p_value < 0.01:
+        return "**"
+    if p_value < 0.05:
+        return "*"
+    return ""
 
 
 def plotModelInterpretation(model, X, y, prog_item):
@@ -218,6 +254,11 @@ def plotModelInterpretation(model, X, y, prog_item):
     perm = permutation_importance(model, X, y, n_repeats=30, scoring="r2", random_state=42, n_jobs=-1)
     sorted_indices = np.argsort(perm.importances_mean)
 
+    # One-sided test per feature (importance > 0), Holm-Bonferroni corrected across features
+    p_values = [ttest_1samp(perm.importances[i], 0, alternative="greater").pvalue
+                for i in range(len(FEATURE_NAMES))]
+    adjusted_p_values = holmBonferroni(p_values)
+
     fig, ax = plt.subplots(figsize=(5, 4), dpi=150)
     fig.set_layout_engine("tight")
     ax.barh(range(len(FEATURE_NAMES)), perm.importances_mean[sorted_indices],
@@ -226,6 +267,14 @@ def plotModelInterpretation(model, X, y, prog_item):
     ax.set_yticklabels([FEATURE_NAMES[i] for i in sorted_indices], fontsize=13)
     ax.set_xlabel("Permutation importance ($R^2$ decrease)", fontsize=13)
     ax.set_title(f"Prog item {prog_item}", fontsize=13)
+
+    for i, idx in enumerate(sorted_indices):
+        value = perm.importances_mean[idx]
+        stars = significanceStars(adjusted_p_values[idx])
+        ax.text(value + perm.importances_std[idx] + ax.get_xlim()[1] * 0.01,
+                i, f"{float(f'{value:.3g}')} {stars}", va="center", fontsize=11)
+
+    ax.margins(x=0.2)
     plt.show()
 
     # Partial dependence: marginal effect of each feature on prediction (others held at mean)
@@ -251,6 +300,7 @@ def generateAllModels(test_size=0.3, val_size=0.1, random_state=42):
     n_rirs = len(rir_to_stimulus_ids)
     rng = np.random.default_rng(random_state)
     shuffled_rirs = rng.permutation(n_rirs)
+
     n_test = int(n_rirs * test_size)
     n_val = int(n_rirs * val_size)
     test_rir_indices = shuffled_rirs[:n_test]
@@ -265,29 +315,60 @@ def generateAllModels(test_size=0.3, val_size=0.1, random_state=42):
             ids.extend(sid for sid in rir_to_stimulus_ids.iloc[i] if sid in pi_ids[prog_item])
         return np.array(ids)
 
-    all_true, all_pred, all_groups, all_best_params = {}, {}, {}, {}
+    all_true_train, all_pred_train, all_groups_train = {}, {}, {}
+    all_true_val, all_pred_val, all_groups_val = {}, {}, {}
+    all_true_test, all_pred_test, all_groups_test = {}, {}, {}
+    all_models, all_train_ids, all_best_params = {}, {}, {}
 
     for prog_item in [1, 2]:
         train_stimulus_ids = stimulusIdsForProgItem(train_rir_indices, prog_item)
         val_stimulus_ids = stimulusIdsForProgItem(val_rir_indices, prog_item)
         test_stimulus_ids = stimulusIdsForProgItem(test_rir_indices, prog_item)
-        y_true, y_pred, groups, best_params = generateModelsForProgItem(prog_item, train_stimulus_ids,
-                                                                         val_stimulus_ids, test_stimulus_ids)
-        all_true[prog_item] = y_true
-        all_pred[prog_item] = y_pred
-        all_groups[prog_item] = groups
+        (y_true_train, y_pred_train, groups_train,
+         y_true_val, y_pred_val, groups_val,
+         y_true_test, y_pred_test, groups_test,
+         model, best_params) = generateModelsForProgItem(prog_item, train_stimulus_ids, val_stimulus_ids, test_stimulus_ids)
+        all_true_train[prog_item] = y_true_train
+        all_pred_train[prog_item] = y_pred_train
+        all_groups_train[prog_item] = groups_train
+        all_true_val[prog_item] = y_true_val
+        all_pred_val[prog_item] = y_pred_val
+        all_groups_val[prog_item] = groups_val
+        all_true_test[prog_item] = y_true_test
+        all_pred_test[prog_item] = y_pred_test
+        all_groups_test[prog_item] = groups_test
+        all_models[prog_item] = model
+        all_train_ids[prog_item] = train_stimulus_ids
         all_best_params[prog_item] = best_params
 
-    plotMaxPredictions(all_true, all_pred, all_groups,
-                       stimulusIdsForProgItem(test_rir_indices, 1),
-                       stimulusIdsForProgItem(test_rir_indices, 2))
+    plotMaxPredictions([
+        {"label": "Train", "marker": "o", "color": "black", "markersize": 3.5,
+         "all_true": all_true_train, "all_pred": all_pred_train, "all_groups": all_groups_train,
+         "ids_pi1": stimulusIdsForProgItem(train_rir_indices, 1),
+         "ids_pi2": stimulusIdsForProgItem(train_rir_indices, 2)},
+        {"label": "Validation", "marker": "s", "color": "darkblue", "markersize": 3.5,
+         "all_true": all_true_val, "all_pred": all_pred_val, "all_groups": all_groups_val,
+         "ids_pi1": stimulusIdsForProgItem(val_rir_indices, 1),
+         "ids_pi2": stimulusIdsForProgItem(val_rir_indices, 2)},
+        {"label": "Test", "marker": "+", "color": "orangered", "markersize": 5.5,
+         "all_true": all_true_test, "all_pred": all_pred_test, "all_groups": all_groups_test,
+         "ids_pi1": stimulusIdsForProgItem(test_rir_indices, 1),
+         "ids_pi2": stimulusIdsForProgItem(test_rir_indices, 2)},
+    ])
 
     for prog_item in [1, 2]:
-        X, y, _, _ = loadProgItemData(prog_item)
+        X, y, groups, _ = loadProgItemData(prog_item)
+        X_train = X[np.isin(groups, all_train_ids[prog_item])]
+        y_train = y[np.isin(groups, all_train_ids[prog_item])]
+        model = all_models[prog_item]
+        print(f"Prog item {prog_item}, final model (training data only):")
+        printModelInfo(model, X_train)
+        plotModelInterpretation(model, X_train, y_train, prog_item)
+
+        # Saved model is retrained on all data (train + val + test) so that
+        # predictUnpleasantnessFromFeaturesSVR(..., k_fold=-1) uses every available sample
         final_model = fitSVR(X, y, all_best_params[prog_item])
-        print(f"Prog item {prog_item}, final model (all data):")
         printModelInfo(final_model, X)
-        plotModelInterpretation(final_model, X, y, prog_item)
         joblib.dump(final_model, os.path.join(MODEL_DIR, f"prog_item_{prog_item}_full.joblib"))
 
 
